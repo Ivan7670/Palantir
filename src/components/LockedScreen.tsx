@@ -1,38 +1,32 @@
 import React, { useState } from 'react';
 import {
-  ChevronDown,
-  ChevronUp,
   Clock,
   Check,
   Edit3,
-  Archive,
   Command,
   CornerDownLeft,
   X,
 } from 'lucide-react';
 import { PriorityTask, SecondaryTask } from '../types.ts';
 import { sounds } from '../utils/audio.ts';
-import { EmergencyUnlockButton } from './EmergencyUnlockButton.tsx';
 import { CustomDurationModal } from './CustomDurationModal.tsx';
 
 interface LockedScreenProps {
   priority: PriorityTask;
-  secondaryTasks: SecondaryTask[];
+  secondaryTasks?: SecondaryTask[];
   onUpdatePriority: (updates: Partial<PriorityTask>) => void;
   onCompletePriority: () => void;
-  onOpenShelf: () => void;
-  onEmergencyUnlock: () => void;
+  onCloseWebpage: () => void;
+  onOpenShelf?: () => void;
+  onEmergencyUnlock?: () => void;
 }
 
 export const LockedScreen: React.FC<LockedScreenProps> = ({
   priority,
-  secondaryTasks,
   onUpdatePriority,
   onCompletePriority,
-  onOpenShelf,
-  onEmergencyUnlock,
+  onCloseWebpage,
 }) => {
-  const [tasksExpanded, setTasksExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(priority.title);
   const [customModalOpen, setCustomModalOpen] = useState(false);
@@ -60,7 +54,15 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
     setIsEditing(false);
   };
 
-  const handleMarkDone = () => {
+  // Requirement 1: "I am committed" closes the webpage entirely
+  const handleCommitAndClose = () => {
+    sounds.playCommit();
+    onCloseWebpage();
+  };
+
+  // Requirement 2: Completing the main priority goes directly into the day won screen
+  const handleBoxClick = () => {
+    if (isEditing) return;
     sounds.playDayWon();
     onCompletePriority();
   };
@@ -75,15 +77,20 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
           </span>
         </div>
 
-        {/* Hero Focus Card with Hover Effects */}
-        <div className="group w-full max-w-[620px] bg-[#181c24]/90 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl p-8 md:p-10 shadow-[0_24px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl relative overflow-hidden transition-all duration-200 text-center">
-          {/* Subtle electric cobalt sheen along top rim */}
-          <div className="absolute top-0 left-1/4 right-1/4 h-[1.5px] bg-gradient-to-r from-transparent via-[#aac7ff]/60 to-transparent" />
+        {/* Hero Focus Card: Requirement 1 & 2: Hover shows green hint to mark done, click goes directly to Day Won */}
+        <div
+          onClick={handleBoxClick}
+          className="group w-full max-w-[620px] rounded-2xl p-8 md:p-10 backdrop-blur-xl relative overflow-hidden transition-all duration-200 text-center select-none cursor-pointer bg-[#181c24]/90 hover:bg-[#15221b]/80 border border-white/[0.08] hover:border-[#34d399]/50 shadow-[0_24px_50px_rgba(0,0,0,0.65)] hover:shadow-[0_0_32px_rgba(52,211,153,0.18),0_28px_56px_rgba(0,0,0,0.75)]"
+        >
+          {/* Subtle electric cobalt sheen that transitions to emerald on hover */}
+          <div className="absolute top-0 left-1/4 right-1/4 h-[1.5px] bg-gradient-to-r from-transparent via-[#aac7ff]/60 group-hover:via-[#34d399]/80 to-transparent transition-all duration-300" />
 
-          {/* Top-Right Quick Action Hover Buttons (Mark Done + Edit) */}
+          {/* Top-Right Quick Action Hover Buttons (Edit) */}
           {!isEditing && (
-            <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-              {/* Edit button on hover */}
+            <div
+              className="absolute top-4 right-4 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 onClick={() => {
@@ -97,23 +104,16 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
                 <Edit3 className="w-3 h-3" />
                 <span>Edit</span>
               </button>
-
-              {/* Mark as Done button on hover */}
-              <button
-                type="button"
-                onClick={handleMarkDone}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#122820] hover:bg-[#17352b] border border-[#34d399]/40 text-xs font-medium text-[#34d399] transition-all shadow-[0_0_12px_rgba(52,211,153,0.2)] cursor-pointer"
-                title="Mark this priority as complete"
-              >
-                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Mark Done</span>
-              </button>
             </div>
           )}
 
           {isEditing ? (
             /* In-place Editing Form */
-            <form onSubmit={handleSaveEdit} className="flex flex-col items-center gap-5">
+            <form
+              onSubmit={handleSaveEdit}
+              onClick={(e) => e.stopPropagation()}
+              className="flex flex-col items-center gap-5 cursor-default"
+            >
               <div className="w-10 h-10 rounded-full bg-[#12151d] border border-white/15 flex items-center justify-center text-white font-semibold text-base mx-auto shadow-inner">
                 1
               </div>
@@ -184,25 +184,20 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
           ) : (
             /* Normal Display Mode */
             <>
-              {/* Number 1 Badge with Hover Effect to Mark as Done */}
-              <button
-                type="button"
-                onClick={handleMarkDone}
-                className="group/badge w-10 h-10 rounded-full bg-[#12151d] border border-white/15 group-hover:border-[#34d399]/60 group-hover:bg-[#122820] group-hover:text-[#34d399] flex items-center justify-center text-white font-semibold text-base mx-auto mb-6 shadow-inner transition-all duration-200 cursor-pointer relative"
-                title="Click to mark as done"
-              >
-                <span className="group-hover/badge:hidden">1</span>
-                <Check className="w-4 h-4 hidden group-hover/badge:inline stroke-[2.5]" />
-              </button>
+              {/* Number 1 Badge: Switches to green checkmark on hover */}
+              <div className="w-10 h-10 rounded-full border border-white/15 group-hover:border-[#34d399]/70 bg-[#12151d] group-hover:bg-[#122820] text-white group-hover:text-[#34d399] flex items-center justify-center font-semibold text-base mx-auto mb-6 shadow-inner transition-all duration-200">
+                <span className="group-hover:hidden">1</span>
+                <Check className="w-4 h-4 hidden group-hover:inline stroke-[2.5]" />
+              </div>
 
               {/* Large Hero Text */}
-              <h2 className="text-2xl md:text-[29px] font-semibold text-[#f0f6fc] text-center leading-snug tracking-tight max-w-lg mx-auto mb-7">
+              <h2 className="text-2xl md:text-[29px] font-semibold text-center leading-snug tracking-tight max-w-lg mx-auto mb-7 text-[#f0f6fc]">
                 {priority.title || 'One crucial priority'}
               </h2>
 
-              {/* Static Duration Pill (Timer removed per request) */}
-              <div className="inline-flex items-center">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium font-tabular bg-white/[0.04] text-[#8b91a0] border border-white/[0.08]">
+              {/* Static Duration Pill: Accents green on hover */}
+              <div className="flex items-center justify-center">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium font-tabular bg-white/[0.04] group-hover:bg-[#122820]/80 text-[#8b91a0] group-hover:text-[#34d399] border border-white/[0.08] group-hover:border-[#34d399]/35 transition-all duration-200 shadow-sm">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{priority.durationMinutes}m</span>
                 </div>
@@ -210,74 +205,16 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
             </>
           )}
         </div>
-
-        {/* Collapsible Next Tasks */}
-        <div className="mt-8 flex flex-col items-center">
-          <button
-            type="button"
-            onClick={() => {
-              sounds.playClick(1.0);
-              setTasksExpanded(!tasksExpanded);
-            }}
-            className="inline-flex items-center gap-1.5 text-xs text-[#8b91a0] hover:text-[#dfe2eb] transition-colors py-1 px-3 rounded-lg hover:bg-white/[0.03] cursor-pointer"
-          >
-            <span>Next tasks ({secondaryTasks.length})</span>
-            {tasksExpanded ? (
-              <ChevronUp className="w-3.5 h-3.5" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5" />
-            )}
-          </button>
-
-          {tasksExpanded && (
-            <div
-              style={{ width: '420px' }}
-              className="w-[420px] max-w-full mt-4 flex flex-col gap-2.5 p-4 rounded-xl bg-[#141820]/70 border border-white/[0.05] animate-in fade-in slide-in-from-top-2 duration-150"
-            >
-              {secondaryTasks.map((task, idx) => (
-                <div
-                  key={task.id}
-                  className="flex items-center justify-between text-xs text-[#8b91a0] py-1 border-b border-white/[0.04] last:border-0"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <span className="font-tabular font-medium text-[#64748b]">{idx + 2}</span>
-                    <span className="truncate">{task.title || 'optional tasks'}</span>
-                  </div>
-                  <span className="font-tabular text-[11px] text-[#64748b] shrink-0">
-                    {task.durationMinutes}m
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Bottom Action Bar */}
-      <div className="w-full max-w-5xl flex items-center justify-between pt-6 border-t border-transparent">
-        {/* Left: Emergency Unlock */}
-        <EmergencyUnlockButton holdSeconds={10} onUnlock={onEmergencyUnlock} />
-
-        {/* Center: Shelf Button */}
+      {/* Bottom Action Bar: Requirement 1: "I am committed" button closes the webpage entirely */}
+      <div className="w-full max-w-5xl flex items-center justify-end pt-6 border-t border-transparent">
         <button
           type="button"
-          onClick={() => {
-            sounds.playClick(1.0);
-            onOpenShelf();
-          }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#161a22] hover:bg-[#1f2532] border border-white/[0.08] text-xs font-medium text-[#dfe2eb] hover:text-white transition-all shadow-sm active:scale-95 cursor-pointer"
+          onClick={handleCommitAndClose}
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#1b2330] hover:bg-[#253245] border border-white/[0.1] text-xs font-semibold text-white tracking-wide transition-all shadow-md hover:border-white/20 active:scale-95 cursor-pointer"
         >
-          <Archive className="w-3.5 h-3.5 text-[#8b91a0]" />
-          <span>Shelf</span>
-        </button>
-
-        {/* Right: Begin Focus button */}
-        <button
-          type="button"
-          onClick={handleMarkDone}
-          className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#1b2330] hover:bg-[#253245] border border-white/[0.1] text-xs font-semibold text-white tracking-wide transition-all shadow-md hover:border-white/20 active:scale-95 cursor-pointer"
-        >
-          <span>Begin Focus</span>
+          <span>I am committed</span>
           <span className="flex items-center opacity-70 text-[10px] font-mono">
             <Command className="w-3 h-3" />
             <CornerDownLeft className="w-3 h-3" />

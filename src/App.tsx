@@ -14,7 +14,8 @@ import { LockedScreen } from './components/LockedScreen.tsx';
 import { DayWonScreen } from './components/DayWonScreen.tsx';
 import { ShelfModal } from './components/ShelfModal.tsx';
 
-const STORAGE_KEY = 'zenith_focus_state_v3';
+const STORAGE_KEY = 'onefocus_state_v1';
+const LEGACY_STORAGE_KEY = 'zenith_focus_state_v3';
 
 export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -26,7 +27,7 @@ export default function App() {
 
   const [state, setState] = useState<AppState>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
@@ -222,6 +223,19 @@ export default function App() {
     }));
   }, []);
 
+  const [isPageClosed, setIsPageClosed] = useState(false);
+
+  // Close webpage entirely (Requirement 1 & 3)
+  const handleCloseWebpage = useCallback(() => {
+    sounds.playCommit();
+    try {
+      window.close();
+    } catch {
+      // Ignore
+    }
+    setIsPageClosed(true);
+  }, []);
+
   // Undo priority completion -> Returns to Screen 2 ('locked')
   const handleUndoPriority = useCallback(() => {
     sounds.playClick(0.9);
@@ -252,15 +266,9 @@ export default function App() {
           sounds.playCommit();
           setScreenMode('locked');
         } else if (currentContextData.screenMode === 'locked') {
-          sounds.playDayWon();
-          setScreenMode('day_won');
+          handleCloseWebpage();
         } else if (currentContextData.screenMode === 'day_won') {
-          sounds.playClick(1.2);
-          if (currentContextData.secondaryTasks.length > 0) {
-            updateSecondaryTask(currentContextData.secondaryTasks[0].id, {
-              completed: !currentContextData.secondaryTasks[0].completed,
-            });
-          }
+          handleCloseWebpage();
         }
       }
 
@@ -271,7 +279,7 @@ export default function App() {
         toggleShelf();
       }
 
-      // Quick numbers 1, 2, 3 when not typing to jump between screens
+      // Quick numbers 1, 2 when not typing to navigate setup/locked
       if (!isInput && !e.metaKey && !e.ctrlKey) {
         if (e.key === '1') {
           sounds.playClick(1.0);
@@ -279,9 +287,6 @@ export default function App() {
         } else if (e.key === '2') {
           sounds.playClick(1.0);
           setScreenMode('locked');
-        } else if (e.key === '3') {
-          sounds.playClick(1.0);
-          setScreenMode('day_won');
         }
       }
     };
@@ -289,6 +294,29 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentContextData, setScreenMode, toggleShelf, updateSecondaryTask, handleUndoPriority]);
+
+  if (isPageClosed) {
+    return (
+      <div className="w-screen h-screen flex flex-col items-center justify-center bg-[#0d1016] text-[#dfe2eb] select-none p-6 text-center animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-3xl bg-[#161a22] border border-white/10 flex items-center justify-center mb-6 shadow-2xl">
+          <span className="w-3 h-3 rounded-full bg-[#0a84ff] shadow-[0_0_16px_rgba(10,132,255,0.8)]" />
+        </div>
+        <h1 className="text-xl font-semibold text-white tracking-tight mb-2">
+          Priority Committed
+        </h1>
+        <p className="text-sm text-[#8b91a0] max-w-sm leading-relaxed mb-8">
+          Focus is set. Window closed — go about your day.
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsPageClosed(false)}
+          className="px-4 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs text-[#8b91a0] hover:text-white transition-colors cursor-pointer"
+        >
+          Reopen OneFocus
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-screen h-screen flex flex-col bg-[#10141a] text-[#dfe2eb] relative overflow-hidden select-none">
@@ -298,7 +326,7 @@ export default function App() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[500px] bg-[#34d399]/[0.035] rounded-full blur-[160px] pointer-events-none transition-all duration-1000" />
       )}
 
-      {/* Top Bar: Date & Time (Left), Work/Life Toggle (Center), Reset Button (Right) */}
+      {/* Top Bar: Date & Time (Left), Work/Life Toggle (Center), New Day Button (Right) */}
       <header className="w-full max-w-5xl mx-auto px-6 pt-5 pb-2 flex items-center justify-between z-20 select-none">
         {/* Left: Live Date & Time */}
         <div className="flex items-center gap-2 text-xs text-[#8b91a0] min-w-[200px]">
@@ -325,16 +353,16 @@ export default function App() {
           <WorkLifeToggle activeContext={state.activeContext} onChange={setContext} />
         </div>
 
-        {/* Right: Reset Button (Returns to starting screen) */}
+        {/* Right: New Day Button (Requirement 3: Replaces Reset) */}
         <div className="flex justify-end min-w-[200px]">
           <button
             type="button"
             onClick={handleResetToStartingScreen}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-xs font-medium text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
-            title="Reset to starting screen with fresh inputs"
+            title="Start a new day with fresh inputs"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Reset</span>
+            <span>New Day</span>
           </button>
         </div>
       </header>
@@ -351,6 +379,8 @@ export default function App() {
             onCommit={() => setScreenMode('locked')}
             onOpenShelf={openShelf}
             onEmergencyUnlock={handleEmergencyUnlock}
+            onAddShelfItem={addShelfItem}
+            shelfCount={currentContextData.shelf.length}
           />
         )}
 
@@ -363,6 +393,7 @@ export default function App() {
               updatePriority({ completed: true });
               setScreenMode('day_won');
             }}
+            onCloseWebpage={handleCloseWebpage}
             onOpenShelf={openShelf}
             onEmergencyUnlock={handleEmergencyUnlock}
           />
@@ -375,9 +406,7 @@ export default function App() {
             onOpenShelf={openShelf}
             onEmergencyUnlock={handleEmergencyUnlock}
             onUndoComplete={handleUndoPriority}
-            onCompleteDay={() => {
-              sounds.playDayWon();
-            }}
+            onCloseWebpage={handleCloseWebpage}
             onUpdateSecondaryTask={updateSecondaryTask}
           />
         )}

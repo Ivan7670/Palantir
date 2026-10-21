@@ -49,6 +49,32 @@ class SoundEngine {
     this.playClick(1.3);
   }
 
+  // Soft swoosh + chime when a task moves into the shelf
+  public playShelfAdd() {
+    if (!this.enabled) return;
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      // Soft ascending arpeggio with tactile click
+      this.playClick(1.4);
+      [440, 554.37, 659.25].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.045);
+        gain.gain.setValueAtTime(0.045, now + i * 0.045);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.045 + 0.32);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.045);
+        osc.stop(now + i * 0.045 + 0.35);
+      });
+    } catch {
+      // Ignore
+    }
+  }
+
   // Resonant serene chime for locking focus / committing
   public playCommit() {
     if (!this.enabled) return;
