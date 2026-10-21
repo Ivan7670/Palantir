@@ -3,6 +3,52 @@ import { sounds } from './audio.ts';
 
 export type NotificationPermissionState = 'granted' | 'denied' | 'default' | 'unsupported';
 
+export interface NotificationResult {
+  success: boolean;
+  method: 'service_worker' | 'notification_api' | 'none';
+  reason?: string;
+}
+
+// Check if running inside an iframe
+export const isRunningInIframe = (): boolean => {
+  try {
+    return typeof window !== 'undefined' && window.self !== window.top;
+  } catch {
+    return true;
+  }
+};
+
+// Register Service Worker for reliable native background push
+let swRegistrationPromise: Promise<ServiceWorkerRegistration | null> | null = null;
+
+export const initServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return null;
+  }
+
+  if (swRegistrationPromise) {
+    return swRegistrationPromise;
+  }
+
+  swRegistrationPromise = (async () => {
+    try {
+      const existing = await navigator.serviceWorker.getRegistration();
+      if (existing) {
+        return existing;
+      }
+      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      await navigator.serviceWorker.ready;
+      return reg;
+    } catch (err) {
+      console.warn('[OneFocus] Service Worker registration failed or unsupported in this context:', err);
+      return null;
+    }
+  })();
+
+  return swRegistrationPromise;
+};
+
+// Get current permission status
 export const getNotificationPermissionState = (): NotificationPermissionState => {
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return 'unsupported';
@@ -10,15 +56,31 @@ export const getNotificationPermissionState = (): NotificationPermissionState =>
   return Notification.permission as NotificationPermissionState;
 };
 
+// Request notification permission from browser
 export const requestNotificationPermission = async (): Promise<NotificationPermissionState> => {
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return 'unsupported';
   }
+
   try {
-    const result = await Notification.requestPermission();
-    return result as NotificationPermissionState;
+    initServiceWorker().catch(() => {});
+
+    let permission: NotificationPermission;
+    if (typeof Notification.requestPermission === 'function') {
+      try {
+        permission = await Notification.requestPermission();
+      } catch {
+        permission = await new Promise((resolve) => {
+          Notification.requestPermission((p) => resolve(p));
+        });
+      }
+    } else {
+      permission = Notification.permission;
+    }
+
+    return permission as NotificationPermissionState;
   } catch (err) {
-    console.error('Error requesting notification permission:', err);
+    console.error('[OneFocus] Error requesting notification permission:', err);
     return 'denied';
   }
 };
@@ -36,33 +98,67 @@ export const formatTimeString = (time24: string): string => {
   return `${displayHour}:${displayMin} ${period}`;
 };
 
-// Send a desktop notification
-export const sendDesktopPush = (
+// Send a desktop notification using ServiceWorker first, falling back to new Notification()
+export const sendDesktopPush = async (
   title: string,
   options?: {
     body?: string;
     tag?: string;
     playSound?: boolean;
+    requireInteraction?: boolean;
     onClick?: () => void;
   }
-): boolean => {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    return false;
-  }
-  if (Notification.permission !== 'granted') {
-    return false;
+): Promise<NotificationResult> => {
+  if (options?.playSound !== false) {
+    sounds.playCommit();
   }
 
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return { success: false, method: 'none', reason: 'Browser does not support notifications' };
+  }
+
+  if (Notification.permission !== 'granted') {
+    return {
+      success: false,
+      method: 'none',
+      reason: `Notification permission is "${Notification.permission}". Please grant permission in browser settings.`,
+    };
+  }
+
+  // 1. Primary Strategy: ServiceWorkerRegistration.showNotification()
+  if ('serviceWorker' in navigator) {
+    try {
+      let reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        reg = (await initServiceWorker()) || undefined;
+      }
+
+      if (reg && typeof reg.showNotification === 'function') {
+        await reg.showNotification(title, {
+          body: options?.body || '',
+          tag: options?.tag || 'onefocus-reminder',
+          icon: '/icon.svg',
+          badge: '/icon.svg',
+          requireInteraction: options?.requireInteraction ?? true,
+          silent: true,
+        });
+
+        return { success: true, method: 'service_worker' };
+      }
+    } catch (swErr) {
+      console.warn('[OneFocus] ServiceWorker showNotification attempt failed, falling back:', swErr);
+    }
+  }
+
+  // 2. Fallback Strategy: Traditional Notification constructor
   try {
     const notification = new Notification(title, {
       body: options?.body || '',
-      icon: '/favicon.ico',
+      icon: '/icon.svg',
       tag: options?.tag || 'onefocus-reminder',
+      requireInteraction: options?.requireInteraction ?? true,
+      silent: true,
     });
-
-    if (options?.playSound !== false) {
-      sounds.playCommit();
-    }
 
     notification.onclick = () => {
       window.focus();
@@ -72,19 +168,26 @@ export const sendDesktopPush = (
       notification.close();
     };
 
-    return true;
-  } catch (err) {
-    console.error('Failed to trigger desktop notification:', err);
-    return false;
+    return { success: true, method: 'notification_api' };
+  } catch (err: any) {
+    const errorMsg = err?.message || String(err);
+    console.error('[OneFocus] Failed to create notification via Notification constructor:', errorMsg);
+    return {
+      success: false,
+      method: 'none',
+      reason: errorMsg.includes('Illegal constructor')
+        ? 'Cross-origin iframe restriction: Open app in full window to send native OS notifications.'
+        : errorMsg,
+    };
   }
 };
 
 // Send priority reminder desktop notification
-export const sendPriorityReminderNotification = (
+export const sendPriorityReminderNotification = async (
   priority: PriorityTask,
   contextName: string,
   onNotificationClick?: () => void
-): boolean => {
+): Promise<NotificationResult> => {
   const hasTitle = priority.title && priority.title.trim().length > 0;
   const title = priority.completed
     ? `OneFocus · Priority Done! (${contextName.toUpperCase()})`
@@ -100,15 +203,17 @@ export const sendPriorityReminderNotification = (
     body,
     tag: 'onefocus-priority-checkin',
     playSound: true,
+    requireInteraction: true,
     onClick: onNotificationClick,
   });
 };
 
 // Send immediate test notification
-export const sendTestPushNotification = (): boolean => {
+export const sendTestPushNotification = async (): Promise<NotificationResult> => {
   return sendDesktopPush('OneFocus · Desktop Notification Active', {
     body: 'Your custom priority reminders are now successfully linked to your desktop!',
     tag: 'onefocus-test',
     playSound: true,
+    requireInteraction: true,
   });
 };

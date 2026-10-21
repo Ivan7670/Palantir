@@ -11,6 +11,9 @@ import {
   VolumeX,
   Send,
   Sparkles,
+  ExternalLink,
+  Info,
+  ShieldAlert,
 } from 'lucide-react';
 import { ReminderSettings } from '../types.ts';
 import { sounds } from '../utils/audio.ts';
@@ -20,6 +23,8 @@ import {
   requestNotificationPermission,
   sendTestPushNotification,
   NotificationPermissionState,
+  isRunningInIframe,
+  initServiceWorker,
 } from '../utils/notifications.ts';
 
 interface SettingsModalProps {
@@ -27,6 +32,7 @@ interface SettingsModalProps {
   onClose: () => void;
   settings: ReminderSettings;
   onUpdateSettings: (updates: Partial<ReminderSettings>) => void;
+  onTriggerTestNotification?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -34,14 +40,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   settings,
   onUpdateSettings,
+  onTriggerTestNotification,
 }) => {
   const [permissionState, setPermissionState] = useState<NotificationPermissionState>('default');
   const [newTimeInput, setNewTimeInput] = useState('14:00');
-  const [testSent, setTestSent] = useState(false);
+  const [testStatus, setTestStatus] = useState<{
+    sent: boolean;
+    method?: string;
+    reason?: string;
+  } | null>(null);
+  const [inIframe, setInIframe] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setPermissionState(getNotificationPermissionState());
+      setInIframe(isRunningInIframe());
+      initServiceWorker().catch(() => {});
     }
   }, [isOpen]);
 
@@ -69,13 +83,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleSendTestNotification = () => {
+  const handleSendTestNotification = async () => {
     sounds.playClick(1.1);
-    const sent = sendTestPushNotification();
-    if (sent) {
-      setTestSent(true);
-      setTimeout(() => setTestSent(false), 2500);
-    } else {
+
+    // Also trigger on-screen toast so user immediately sees visual notification
+    if (onTriggerTestNotification) {
+      onTriggerTestNotification();
+    }
+
+    const res = await sendTestPushNotification();
+    setTestStatus({
+      sent: res.success,
+      method: res.method,
+      reason: res.reason,
+    });
+
+    if (!res.success && permissionState !== 'granted') {
       handleRequestPermission();
     }
   };
@@ -107,7 +130,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         }
       }}
     >
-      <div className="w-full max-w-[560px] bg-[#161a22]/95 border border-white/[0.1] rounded-2xl shadow-[0_24px_50px_rgba(0,0,0,0.85)] p-6 flex flex-col gap-6 text-[#dfe2eb] max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-[580px] bg-[#161a22]/95 border border-white/[0.1] rounded-2xl shadow-[0_24px_50px_rgba(0,0,0,0.85)] p-6 flex flex-col gap-5 text-[#dfe2eb] max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
           <div className="flex items-center gap-2.5">
@@ -116,10 +139,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-semibold text-white tracking-tight">
-                Reminders & Desktop Push
+                Reminders & Desktop Notifications
               </h2>
               <p className="text-xs text-[#8b91a0]">
-                Customize daily reminder times and desktop notifications
+                Customizable scheduled check-ins and system push alerts
               </p>
             </div>
           </div>
@@ -137,54 +160,149 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Section 1: Desktop Push Notification Permission */}
+        {/* Section 1: Desktop Push Notification Engine Status */}
         <div className="p-4 rounded-xl border border-white/[0.08] bg-[#12161f]/70 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#8b91a0]">
-              Desktop Notifications Status
+              System Desktop Push
             </span>
 
             {permissionState === 'granted' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#122820] border border-[#34d399]/40 text-[#34d399] text-xs font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Enabled</span>
+                <span>Permission Granted</span>
               </span>
             )}
             {permissionState === 'denied' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#2a1717] border border-[#f87171]/40 text-[#f87171] text-xs font-medium">
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span>Blocked</span>
+                <span>Blocked by Browser</span>
               </span>
             )}
             {permissionState === 'default' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1c2432] border border-[#3b82f6]/40 text-[#93c5fd] text-xs font-medium">
-                <span>Action Needed</span>
+                <span>Needs Permission</span>
               </span>
             )}
           </div>
 
           {permissionState === 'granted' ? (
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <p className="text-xs text-[#8b91a0] leading-relaxed">
-                Native desktop notifications are active. Reminders will pop up even if OneFocus is minimized.
-              </p>
-              <button
-                type="button"
-                onClick={handleSendTestNotification}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs text-white shrink-0 transition-all cursor-pointer shadow-sm active:scale-95"
-              >
-                <Send className="w-3 h-3 text-[#34d399]" />
-                <span>{testSent ? 'Sent!' : 'Send Test'}</span>
-              </button>
+            <div className="flex flex-col gap-2.5 pt-1">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-[#8b91a0] leading-relaxed">
+                  Browser notification permissions are enabled. Service Worker background delivery is ready.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleSendTestNotification}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0a84ff] hover:bg-[#0070df] text-xs font-medium text-white shrink-0 transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <Send className="w-3 h-3" />
+                  <span>Send Test Notification</span>
+                </button>
+              </div>
+
+              {/* Diagnostic Feedback after test */}
+              {testStatus && (
+                <div
+                  className={`p-3 rounded-lg border text-xs leading-relaxed transition-all ${
+                    testStatus.sent
+                      ? 'bg-[#122820]/70 border-[#34d399]/30 text-[#dfe2eb]'
+                      : 'bg-[#2a1717]/70 border-[#f87171]/30 text-[#fca5a5]'
+                  }`}
+                >
+                  {testStatus.sent ? (
+                    <div>
+                      <div className="flex items-center gap-1.5 font-semibold text-[#34d399] mb-1">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Notification Dispatched to Operating System</span>
+                      </div>
+                      <p className="text-[11px] text-[#9ca3af]">
+                        We sent the push notification via{' '}
+                        <strong className="text-white">
+                          {testStatus.method === 'service_worker'
+                            ? 'Service Worker'
+                            : 'Web Notification API'}
+                        </strong>
+                        .
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-1.5 font-semibold text-[#f87171] mb-1">
+                        <ShieldAlert className="w-4 h-4" />
+                        <span>Dispatch Notice</span>
+                      </div>
+                      <p className="text-[11px]">{testStatus.reason}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* macOS / Windows OS System Guidance Alert Box */}
+              <div className="p-3 rounded-lg bg-[#18202d]/60 border border-white/[0.06] text-[11px] text-[#8b91a0] flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 text-white font-medium">
+                  <Info className="w-3.5 h-3.5 text-[#60a5fa]" />
+                  <span>Why you might hear sound but not see OS banners:</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-[#9ca3af] pl-1">
+                  <li>
+                    <strong className="text-[#dfe2eb]">macOS:</strong> Open{' '}
+                    <span className="text-white font-mono text-[10px]">System Settings → Notifications → Google Chrome</span>{' '}
+                    and ensure <span className="text-[#34d399]">Allow Notifications</span> is toggled ON with &ldquo;Banners&rdquo; or &ldquo;Alerts&rdquo;.
+                  </li>
+                  <li>
+                    <strong className="text-[#dfe2eb]">Focus / Do Not Disturb:</strong> If macOS or Windows Focus Mode is active, system banners are silenced and hidden in the Notification Center.
+                  </li>
+                  <li>
+                    <strong className="text-[#dfe2eb]">Windows:</strong> Open{' '}
+                    <span className="text-white font-mono text-[10px]">Settings → System → Notifications</span>{' '}
+                    and ensure Chrome is allowed.
+                  </li>
+                  <li>
+                    <strong className="text-[#dfe2eb]">In-App Heads-Up Banner:</strong> OneFocus also automatically displays an on-screen Sequoia banner so you never miss a reminder.
+                  </li>
+                </ul>
+
+                {inIframe && (
+                  <div className="mt-1 pt-1.5 border-t border-white/[0.06] flex items-center justify-between">
+                    <span className="text-[10px] text-[#8b91a0]">
+                      Currently running inside preview frame.
+                    </span>
+                    <a
+                      href={window.location.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-[#60a5fa] hover:text-[#93c5fd] font-medium transition-colors"
+                    >
+                      <span>Open in Full Standalone Tab</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           ) : permissionState === 'denied' ? (
-            <div className="text-xs text-[#f87171] leading-relaxed">
-              Notifications were blocked in your browser. To enable them, click the lock or site settings icon in your browser address bar and set <strong>Notifications</strong> to <strong>Allow</strong>.
+            <div className="text-xs text-[#f87171] leading-relaxed flex flex-col gap-2">
+              <p>
+                Notifications were blocked in your browser. To enable them, click the lock or site settings icon in your browser address bar and change <strong>Notifications</strong> to <strong>Allow</strong>.
+              </p>
+              {inIframe && (
+                <a
+                  href={window.location.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-[#60a5fa] hover:underline"
+                >
+                  <span>Open standalone app in new tab to prompt for permissions</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               <p className="text-xs text-[#8b91a0] leading-relaxed">
-                Enable desktop push to receive alerts at your set times while working in other apps.
+                Enable desktop push to receive alerts at your set times even when working in other apps or when the window is minimized.
               </p>
               <button
                 type="button"
@@ -248,7 +366,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveTime(timeStr)}
-                        className="text-[#64748b] hover:text-[#f87171] transition-colors p-0.5"
+                        className="text-[#64748b] hover:text-[#f87171] transition-colors p-0.5 cursor-pointer"
                         title="Remove time"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -287,7 +405,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       type="button"
                       disabled={settings.specificTimes.includes(t)}
                       onClick={() => handleAddTime(t)}
-                      className="px-2 py-1 text-[11px] font-tabular rounded bg-white/[0.03] hover:bg-white/[0.08] text-[#8b91a0] hover:text-white border border-white/[0.05] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                      className="px-2 py-1 text-[11px] font-tabular rounded bg-white/[0.03] hover:bg-white/[0.08] text-[#8b91a0] hover:text-white border border-white/[0.05] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
                     >
                       {formatTimeString(t)}
                     </button>

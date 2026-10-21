@@ -22,7 +22,11 @@ import { DayWonScreen } from './components/DayWonScreen.tsx';
 import { ShelfModal } from './components/ShelfModal.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
 import { MinimizedDock } from './components/MinimizedDock.tsx';
-import { sendPriorityReminderNotification } from './utils/notifications.ts';
+import { NotificationToast, ActiveNotification } from './components/NotificationToast.tsx';
+import {
+  sendPriorityReminderNotification,
+  initServiceWorker,
+} from './utils/notifications.ts';
 
 const STORAGE_KEY = 'onefocus_state_v1';
 const LEGACY_STORAGE_KEY = 'zenith_focus_state_v3';
@@ -56,8 +60,14 @@ export default function App() {
 
   const [isMinimized, setIsMinimized] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeToast, setActiveToast] = useState<ActiveNotification | null>(null);
   const lastNotifiedMinuteRef = useRef<string | null>(null);
   const lastIntervalNotifiedAtRef = useRef<number>(Date.now());
+
+  // Proactively register background Service Worker for native desktop push
+  useEffect(() => {
+    initServiceWorker().catch(() => {});
+  }, []);
 
   // Keep sounds engine sync
   useEffect(() => {
@@ -261,6 +271,42 @@ export default function App() {
     }));
   }, []);
 
+  // Trigger reminder notification with dual delivery:
+  // 1. In-app macOS Sequoia floating banner (guaranteed visual delivery even if OS Do Not Disturb is ON)
+  // 2. Native desktop push via Service Worker / Web Notification API
+  const triggerReminderNotification = useCallback(
+    (priority: PriorityTask, contextName: string) => {
+      const hasTitle = priority.title && priority.title.trim().length > 0;
+      const title = priority.completed
+        ? `OneFocus · Priority Done! (${contextName.toUpperCase()})`
+        : `OneFocus · Priority Reminder (${contextName.toUpperCase()})`;
+
+      const body = priority.completed
+        ? `Great job! You've completed "${priority.title || 'your main priority'}". The day is won.`
+        : hasTitle
+        ? `Current Focus: "${priority.title}" (${priority.durationMinutes}m planned). Stay locked in!`
+        : 'Reminder: Set your ONE crucial priority for today to win the day!';
+
+      // 1. Show floating on-screen banner
+      setActiveToast({
+        id: `toast-${Date.now()}`,
+        title,
+        body,
+        contextName,
+        durationMinutes: priority.durationMinutes,
+        type: priority.completed ? 'completed' : 'reminder',
+      });
+
+      // 2. Dispatch native OS desktop push
+      sendPriorityReminderNotification(priority, contextName, () => {
+        setIsMinimized(false);
+      }).catch((err) => {
+        console.warn('[OneFocus] Desktop push dispatch warning:', err);
+      });
+    },
+    []
+  );
+
   // Background check for scheduled reminder times & recurring intervals (User Request 2 & 3)
   useEffect(() => {
     if (!state.reminders?.enabled) return;
@@ -277,11 +323,7 @@ export default function App() {
         lastNotifiedMinuteRef.current !== currentMinuteStr
       ) {
         lastNotifiedMinuteRef.current = currentMinuteStr;
-        sendPriorityReminderNotification(
-          currentContextData.priority,
-          state.activeContext,
-          () => setIsMinimized(false)
-        );
+        triggerReminderNotification(currentContextData.priority, state.activeContext);
       }
 
       // 2. Check Recurring Interval
@@ -289,17 +331,18 @@ export default function App() {
         const intervalMs = state.reminders.intervalMinutes * 60 * 1000;
         if (Date.now() - lastIntervalNotifiedAtRef.current >= intervalMs) {
           lastIntervalNotifiedAtRef.current = Date.now();
-          sendPriorityReminderNotification(
-            currentContextData.priority,
-            state.activeContext,
-            () => setIsMinimized(false)
-          );
+          triggerReminderNotification(currentContextData.priority, state.activeContext);
         }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [state.reminders, currentContextData.priority, state.activeContext]);
+  }, [
+    state.reminders,
+    currentContextData.priority,
+    state.activeContext,
+    triggerReminderNotification,
+  ]);
 
   // Synchronize dynamic document title when minimized vs full window
   useEffect(() => {
@@ -499,6 +542,9 @@ export default function App() {
             priority={currentContextData.priority}
             secondaryTasks={currentContextData.secondaryTasks}
             onUpdatePriority={updatePriority}
+            onEditPriority={() => {
+              setScreenMode('setup');
+            }}
             onCompletePriority={() => {
               updatePriority({ completed: true });
               setScreenMode('day_won');
@@ -560,6 +606,24 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         settings={state.reminders}
         onUpdateSettings={updateReminderSettings}
+        onTriggerTestNotification={() => {
+          setActiveToast({
+            id: `test-${Date.now()}`,
+            title: 'OneFocus · Desktop Notification Active',
+            body: 'Your custom priority reminders are now linked to your desktop and on-screen alerts!',
+            type: 'test',
+          });
+        }}
+      />
+
+      {/* Floating macOS Sequoia Notification Toast */}
+      <NotificationToast
+        notification={activeToast}
+        onDismiss={() => setActiveToast(null)}
+        onAction={() => {
+          setIsMinimized(false);
+          setActiveToast(null);
+        }}
       />
     </div>
   );
