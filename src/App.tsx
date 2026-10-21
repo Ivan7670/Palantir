@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Calendar, RotateCcw, Bell, Minus } from 'lucide-react';
+import { Calendar, RotateCcw, Bell } from 'lucide-react';
 import {
   AppState,
   ScreenMode,
@@ -249,14 +249,14 @@ export default function App() {
     }));
   }, []);
 
-  // Minimize / Maximize window handlers (User Request 1: minimize for web app usage)
+  // Minimize / Maximize window handlers (macOS genie/scale minimize to desktop dock)
   const handleMinimizeWindow = useCallback(() => {
-    sounds.playCommit();
+    sounds.playMinimize();
     setIsMinimized(true);
   }, []);
 
   const handleMaximizeWindow = useCallback(() => {
-    sounds.playClick(1.0);
+    sounds.playRestore();
     setIsMinimized(false);
   }, []);
 
@@ -386,6 +386,17 @@ export default function App() {
         return;
       }
 
+      // Cmd+M or Ctrl+M minimizes/restores window (macOS standard)
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'm' || e.key === 'M')) {
+        e.preventDefault();
+        if (isMinimized) {
+          handleMaximizeWindow();
+        } else {
+          handleMinimizeWindow();
+        }
+        return;
+      }
+
       // Cmd+Z or Ctrl+Z to undo when on day won screen
       if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
         if (currentContextData.screenMode === 'day_won') {
@@ -448,125 +459,166 @@ export default function App() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[500px] bg-[#34d399]/[0.035] rounded-full blur-[160px] pointer-events-none transition-all duration-1000" />
       )}
 
-      {/* Top Bar: Date & Time (Left), Work/Life Toggle (Center), Actions & New Day (Right) */}
-      <header className="w-full max-w-5xl mx-auto px-6 pt-5 pb-2 flex items-center justify-between z-20 select-none">
-        {/* Left: Live Date & Time */}
-        <div className="flex items-center gap-2 text-xs text-[#8b91a0] min-w-[200px]">
-          <Calendar className="w-3.5 h-3.5 text-[#64748b]" />
-          <span className="tracking-tight text-[#8b91a0] font-medium">
-            {currentTime.toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </span>
-          <span className="text-[#64748b]/40">·</span>
-          <span className="font-tabular text-[#dfe2eb] font-medium">
-            {currentTime.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-            })}
-          </span>
-        </div>
-
-        {/* Center: Work | Life Toggle */}
-        <div className="flex justify-center">
-          <WorkLifeToggle activeContext={state.activeContext} onChange={setContext} />
-        </div>
-
-        {/* Right: Settings, Minimize, and New Day Buttons */}
-        <div className="flex items-center justify-end gap-2 min-w-[200px]">
-          {/* Settings / Reminders Icon Button (User Request 2 & 3) */}
-          <button
-            type="button"
-            onClick={() => {
-              sounds.playClick(1.0);
-              setSettingsOpen(true);
-            }}
-            className="relative inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
-            title="Reminders & Desktop Push Notifications (Cmd+,)"
-          >
-            <Bell className="w-3.5 h-3.5" />
-            {state.reminders?.enabled && (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#34d399] shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-            )}
-          </button>
-
-          {/* Minimize Window Button (User Request 1) */}
-          <button
-            type="button"
-            onClick={handleMinimizeWindow}
-            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
-            title="Minimize to floating focus dock"
-          >
-            <Minus className="w-3.5 h-3.5" />
-          </button>
-
-          {/* New Day Button */}
-          <button
-            type="button"
-            onClick={handleResetToStartingScreen}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-xs font-medium text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
-            title="Start a new day with fresh inputs"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>New Day</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main View Area (Renders Screen 1, 2, or 3 based on screenMode) */}
-      <main
-        className={`flex-1 flex flex-col overflow-hidden relative z-10 pb-4 transition-all duration-300 ${
-          isMinimized ? 'opacity-20 scale-95 pointer-events-none blur-sm' : 'opacity-100 scale-100'
+      {/* Main Window: smoothly scales and animates down into the dock when minimized */}
+      <div
+        className={`w-full h-full flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom ${
+          isMinimized
+            ? 'opacity-0 scale-[0.2] translate-y-[55vh] pointer-events-none'
+            : 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
         }`}
       >
-        {currentContextData.screenMode === 'setup' && (
-          <SetupScreen
-            context={state.activeContext}
-            priority={currentContextData.priority}
-            secondaryTasks={currentContextData.secondaryTasks}
-            onUpdatePriority={updatePriority}
-            onUpdateSecondaryTask={updateSecondaryTask}
-            onCommit={() => setScreenMode('locked')}
-            onOpenShelf={openShelf}
-            onEmergencyUnlock={handleEmergencyUnlock}
-            onAddShelfItem={addShelfItem}
-            shelfCount={currentContextData.shelf.length}
-          />
-        )}
+        {/* Top Bar: macOS Traffic Lights (Minimize, Close, Maximize), Context, Date & Time, Actions */}
+        <header className="w-full max-w-5xl mx-auto px-6 pt-5 pb-2 flex items-center justify-between z-20 select-none">
+          {/* Left: macOS Traffic Lights, Window Title Tab & Live Date/Time */}
+          <div className="flex items-center gap-3 min-w-[240px]">
+            {/* macOS Window Traffic Lights: Yellow button minimizes to desktop dock! */}
+            <div className="flex items-center gap-2 group mr-1">
+              {/* Red: New Day / Close */}
+              <button
+                type="button"
+                onClick={handleResetToStartingScreen}
+                className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff4238] border border-[#e0443e]/50 flex items-center justify-center text-[8px] text-[#700] opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-sm group/btn"
+                title="New Day (Reset)"
+              >
+                <span className="opacity-0 group-hover/btn:opacity-100 font-bold leading-none">×</span>
+              </button>
 
-        {currentContextData.screenMode === 'locked' && (
-          <LockedScreen
-            priority={currentContextData.priority}
-            secondaryTasks={currentContextData.secondaryTasks}
-            onUpdatePriority={updatePriority}
-            onEditPriority={() => {
-              setScreenMode('setup');
-            }}
-            onCompletePriority={() => {
-              updatePriority({ completed: true });
-              setScreenMode('day_won');
-            }}
-            onMinimizeWindow={handleMinimizeWindow}
-            onOpenShelf={openShelf}
-            onEmergencyUnlock={handleEmergencyUnlock}
-          />
-        )}
+              {/* Yellow: Minimize Window to Dock */}
+              <button
+                type="button"
+                onClick={handleMinimizeWindow}
+                className="w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffaa00] border border-[#dea123]/50 flex items-center justify-center text-[9px] text-[#805300] opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-sm group/btn"
+                title="Minimize Window to Dock (Cmd+M)"
+              >
+                <span className="opacity-0 group-hover/btn:opacity-100 font-bold leading-none -translate-y-[0.5px]">−</span>
+              </button>
 
-        {currentContextData.screenMode === 'day_won' && (
-          <DayWonScreen
-            priority={currentContextData.priority}
-            secondaryTasks={currentContextData.secondaryTasks}
-            onOpenShelf={openShelf}
-            onEmergencyUnlock={handleEmergencyUnlock}
-            onUndoComplete={handleUndoPriority}
-            onMinimizeWindow={handleMinimizeWindow}
-            onUpdateSecondaryTask={updateSecondaryTask}
-          />
-        )}
-      </main>
+              {/* Green: Focus Mode */}
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playClick(1.2);
+                }}
+                className="w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#1ebd35] border border-[#1aab29]/50 flex items-center justify-center text-[7px] text-[#006010] opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-sm group/btn"
+                title="Window Active"
+              >
+                <span className="opacity-0 group-hover/btn:opacity-100 font-bold leading-none">+</span>
+              </button>
+            </div>
+
+            {/* Window title tab */}
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.03] border border-white/[0.06] text-[11px] font-medium text-[#8b91a0]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0a84ff]" />
+              <span className="tracking-tight text-white font-medium">OneFocus</span>
+              <span className="text-[#64748b]">·</span>
+              <span className="capitalize text-[#8b91a0]">{state.activeContext}</span>
+            </div>
+
+            {/* Live Date & Time */}
+            <div className="flex items-center gap-2 text-xs text-[#8b91a0]">
+              <Calendar className="w-3.5 h-3.5 text-[#64748b]" />
+              <span className="tracking-tight text-[#8b91a0] font-medium hidden md:inline">
+                {currentTime.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
+              <span className="text-[#64748b]/40 hidden md:inline">·</span>
+              <span className="font-tabular text-[#dfe2eb] font-medium">
+                {currentTime.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })}
+              </span>
+            </div>
+          </div>
+
+          {/* Center: Work | Life Toggle */}
+          <div className="flex justify-center">
+            <WorkLifeToggle activeContext={state.activeContext} onChange={setContext} />
+          </div>
+
+          {/* Right: Settings and New Day Buttons */}
+          <div className="flex items-center justify-end gap-2 min-w-[200px]">
+            {/* Settings / Reminders Icon Button (User Request 2 & 3) */}
+            <button
+              type="button"
+              onClick={() => {
+                sounds.playClick(1.0);
+                setSettingsOpen(true);
+              }}
+              className="relative inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Reminders & Desktop Push Notifications (Cmd+,)"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              {state.reminders?.enabled && (
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#34d399] shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+              )}
+            </button>
+
+            {/* New Day Button */}
+            <button
+              type="button"
+              onClick={handleResetToStartingScreen}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-xs font-medium text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Start a new day with fresh inputs"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>New Day</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Main View Area (Renders Screen 1, 2, or 3 based on screenMode) */}
+        <main className="flex-1 flex flex-col overflow-hidden relative z-10 pb-4">
+          {currentContextData.screenMode === 'setup' && (
+            <SetupScreen
+              context={state.activeContext}
+              priority={currentContextData.priority}
+              secondaryTasks={currentContextData.secondaryTasks}
+              onUpdatePriority={updatePriority}
+              onUpdateSecondaryTask={updateSecondaryTask}
+              onCommit={() => setScreenMode('locked')}
+              onOpenShelf={openShelf}
+              onEmergencyUnlock={handleEmergencyUnlock}
+              onAddShelfItem={addShelfItem}
+              shelfCount={currentContextData.shelf.length}
+            />
+          )}
+
+          {currentContextData.screenMode === 'locked' && (
+            <LockedScreen
+              priority={currentContextData.priority}
+              secondaryTasks={currentContextData.secondaryTasks}
+              onUpdatePriority={updatePriority}
+              onEditPriority={() => {
+                setScreenMode('setup');
+              }}
+              onCompletePriority={() => {
+                updatePriority({ completed: true });
+                setScreenMode('day_won');
+              }}
+              onMinimizeWindow={handleMinimizeWindow}
+              onOpenShelf={openShelf}
+              onEmergencyUnlock={handleEmergencyUnlock}
+            />
+          )}
+
+          {currentContextData.screenMode === 'day_won' && (
+            <DayWonScreen
+              priority={currentContextData.priority}
+              secondaryTasks={currentContextData.secondaryTasks}
+              onOpenShelf={openShelf}
+              onEmergencyUnlock={handleEmergencyUnlock}
+              onUndoComplete={handleUndoPriority}
+              onMinimizeWindow={handleMinimizeWindow}
+              onUpdateSecondaryTask={updateSecondaryTask}
+            />
+          )}
+        </main>
+      </div>
 
       {/* Minimized Focus Dock (User Request 1: Floating dock for web app usage) */}
       {isMinimized && (
