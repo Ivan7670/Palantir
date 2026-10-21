@@ -1,0 +1,6 @@
+{
+  "name": "Zenith Focus",
+  "description": "Minimal typographic macOS Sequoia-style deep work commitment protocol with one true priority, locked focus mode, optional queue, and rapid shelf.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
