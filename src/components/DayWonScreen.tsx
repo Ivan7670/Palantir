@@ -17,7 +17,7 @@ interface DayWonScreenProps {
   onOpenShelf: () => void;
   onEmergencyUnlock: () => void;
   onUndoComplete: () => void;
-  onCloseWebpage: () => void;
+  onMinimizeWindow: () => void;
   onUpdateSecondaryTask: (id: string, updates: Partial<SecondaryTask>) => void;
 }
 
@@ -27,7 +27,7 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
   onOpenShelf,
   onEmergencyUnlock,
   onUndoComplete,
-  onCloseWebpage,
+  onMinimizeWindow,
   onUpdateSecondaryTask,
 }) => {
   const handleToggleSecondaryComplete = (taskId: string, currentCompleted: boolean) => {
@@ -37,7 +37,7 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
 
   const handleGoodWorkClick = () => {
     sounds.playCommit();
-    onCloseWebpage();
+    onMinimizeWindow();
   };
 
   return (
@@ -174,11 +174,12 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
           <span>Shelf (&lt;15m)</span>
         </button>
 
-        {/* Right: "Good work" button that closes the webpage (no complete day button) */}
+        {/* Right: "Good work" button that minimizes the app window for web app usage */}
         <button
           type="button"
           onClick={handleGoodWorkClick}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#1b2330] hover:bg-[#253245] border border-white/[0.1] text-xs font-semibold text-white tracking-wide transition-all shadow-md hover:border-white/20 active:scale-95 cursor-pointer"
+          title="Day won! Minimize to compact focus dock"
         >
           <span>Good work</span>
           <span className="flex items-center opacity-70 text-[10px] font-mono">

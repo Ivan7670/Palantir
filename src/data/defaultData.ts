@@ -1,9 +1,19 @@
-import { AppState } from '../types.ts';
+import { AppState, ReminderSettings } from '../types.ts';
+
+export const INITIAL_REMINDERS: ReminderSettings = {
+  enabled: true,
+  soundEnabled: true,
+  desktopPushEnabled: false,
+  specificTimes: ['09:00', '12:00', '15:00', '18:00'],
+  intervalEnabled: false,
+  intervalMinutes: 45,
+};
 
 export const INITIAL_STATE: AppState = {
   activeContext: 'work',
   shelfOpen: false,
   soundEnabled: true,
+  reminders: INITIAL_REMINDERS,
   work: {
     screenMode: 'setup',
     priority: {

@@ -25,6 +25,15 @@ export interface ShelfItem {
   completed: boolean;
 }
 
+export interface ReminderSettings {
+  enabled: boolean;
+  soundEnabled: boolean;
+  desktopPushEnabled: boolean;
+  specificTimes: string[]; // ["09:00", "12:00", "15:00", "18:00"] (24h format HH:mm)
+  intervalEnabled: boolean;
+  intervalMinutes: number; // 30, 45, 60, etc.
+}
+
 export interface ContextState {
   priority: PriorityTask;
   secondaryTasks: SecondaryTask[];
@@ -38,4 +47,5 @@ export interface AppState {
   life: ContextState;
   shelfOpen: boolean;
   soundEnabled: boolean;
+  reminders: ReminderSettings;
 }

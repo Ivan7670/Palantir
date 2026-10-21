@@ -16,7 +16,7 @@ interface LockedScreenProps {
   secondaryTasks?: SecondaryTask[];
   onUpdatePriority: (updates: Partial<PriorityTask>) => void;
   onCompletePriority: () => void;
-  onCloseWebpage: () => void;
+  onMinimizeWindow: () => void;
   onOpenShelf?: () => void;
   onEmergencyUnlock?: () => void;
 }
@@ -25,7 +25,7 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
   priority,
   onUpdatePriority,
   onCompletePriority,
-  onCloseWebpage,
+  onMinimizeWindow,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(priority.title);
@@ -54,10 +54,10 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
     setIsEditing(false);
   };
 
-  // Requirement 1: "I am committed" closes the webpage entirely
-  const handleCommitAndClose = () => {
+  // User Request 1: "I am committed" minimizes the window for web app usage
+  const handleCommitAndMinimize = () => {
     sounds.playCommit();
-    onCloseWebpage();
+    onMinimizeWindow();
   };
 
   // Requirement 2: Completing the main priority goes directly into the day won screen
@@ -207,12 +207,13 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
         </div>
       </div>
 
-      {/* Bottom Action Bar: Requirement 1: "I am committed" button closes the webpage entirely */}
+      {/* Bottom Action Bar: "I am committed" button minimizes the app window for web app usage */}
       <div className="w-full max-w-5xl flex items-center justify-end pt-6 border-t border-transparent">
         <button
           type="button"
-          onClick={handleCommitAndClose}
+          onClick={handleCommitAndMinimize}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#1b2330] hover:bg-[#253245] border border-white/[0.1] text-xs font-semibold text-white tracking-wide transition-all shadow-md hover:border-white/20 active:scale-95 cursor-pointer"
+          title="Commit priority and minimize to compact focus dock"
         >
           <span>I am committed</span>
           <span className="flex items-center opacity-70 text-[10px] font-mono">

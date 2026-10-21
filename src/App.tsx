@@ -3,9 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, RotateCcw } from 'lucide-react';
-import { AppState, ScreenMode, WorkLifeContext, PriorityTask, SecondaryTask } from './types.ts';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Calendar, RotateCcw, Bell, Minus } from 'lucide-react';
+import {
+  AppState,
+  ScreenMode,
+  WorkLifeContext,
+  PriorityTask,
+  SecondaryTask,
+  ReminderSettings,
+} from './types.ts';
 import { INITIAL_STATE } from './data/defaultData.ts';
 import { sounds } from './utils/audio.ts';
 import { WorkLifeToggle } from './components/WorkLifeToggle.tsx';
@@ -13,6 +20,9 @@ import { SetupScreen } from './components/SetupScreen.tsx';
 import { LockedScreen } from './components/LockedScreen.tsx';
 import { DayWonScreen } from './components/DayWonScreen.tsx';
 import { ShelfModal } from './components/ShelfModal.tsx';
+import { SettingsModal } from './components/SettingsModal.tsx';
+import { MinimizedDock } from './components/MinimizedDock.tsx';
+import { sendPriorityReminderNotification } from './utils/notifications.ts';
 
 const STORAGE_KEY = 'onefocus_state_v1';
 const LEGACY_STORAGE_KEY = 'zenith_focus_state_v3';
@@ -33,6 +43,7 @@ export default function App() {
         return {
           ...INITIAL_STATE,
           ...parsed,
+          reminders: { ...INITIAL_STATE.reminders, ...(parsed.reminders || {}) },
           work: { ...INITIAL_STATE.work, ...parsed.work },
           life: { ...INITIAL_STATE.life, ...parsed.life },
         };
@@ -42,6 +53,11 @@ export default function App() {
     }
     return INITIAL_STATE;
   });
+
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const lastNotifiedMinuteRef = useRef<string | null>(null);
+  const lastIntervalNotifiedAtRef = useRef<number>(Date.now());
 
   // Keep sounds engine sync
   useEffect(() => {
@@ -223,18 +239,79 @@ export default function App() {
     }));
   }, []);
 
-  const [isPageClosed, setIsPageClosed] = useState(false);
-
-  // Close webpage entirely (Requirement 1 & 3)
-  const handleCloseWebpage = useCallback(() => {
+  // Minimize / Maximize window handlers (User Request 1: minimize for web app usage)
+  const handleMinimizeWindow = useCallback(() => {
     sounds.playCommit();
-    try {
-      window.close();
-    } catch {
-      // Ignore
-    }
-    setIsPageClosed(true);
+    setIsMinimized(true);
   }, []);
+
+  const handleMaximizeWindow = useCallback(() => {
+    sounds.playClick(1.0);
+    setIsMinimized(false);
+  }, []);
+
+  // Update reminder settings (User Request 2 & 3)
+  const updateReminderSettings = useCallback((updates: Partial<ReminderSettings>) => {
+    setState((prev) => ({
+      ...prev,
+      reminders: {
+        ...prev.reminders,
+        ...updates,
+      },
+    }));
+  }, []);
+
+  // Background check for scheduled reminder times & recurring intervals (User Request 2 & 3)
+  useEffect(() => {
+    if (!state.reminders?.enabled) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const currentMinuteStr = `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}`;
+
+      // 1. Check Specific Times
+      if (
+        state.reminders.specificTimes.includes(currentMinuteStr) &&
+        lastNotifiedMinuteRef.current !== currentMinuteStr
+      ) {
+        lastNotifiedMinuteRef.current = currentMinuteStr;
+        sendPriorityReminderNotification(
+          currentContextData.priority,
+          state.activeContext,
+          () => setIsMinimized(false)
+        );
+      }
+
+      // 2. Check Recurring Interval
+      if (state.reminders.intervalEnabled && state.reminders.intervalMinutes > 0) {
+        const intervalMs = state.reminders.intervalMinutes * 60 * 1000;
+        if (Date.now() - lastIntervalNotifiedAtRef.current >= intervalMs) {
+          lastIntervalNotifiedAtRef.current = Date.now();
+          sendPriorityReminderNotification(
+            currentContextData.priority,
+            state.activeContext,
+            () => setIsMinimized(false)
+          );
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [state.reminders, currentContextData.priority, state.activeContext]);
+
+  // Synchronize dynamic document title when minimized vs full window
+  useEffect(() => {
+    if (isMinimized) {
+      const taskTitle = currentContextData.priority.title.trim();
+      document.title = taskTitle
+        ? `● ${taskTitle.length > 25 ? taskTitle.slice(0, 25) + '…' : taskTitle} — OneFocus`
+        : '● Focus — OneFocus';
+    } else {
+      document.title = 'OneFocus — The One Thing Protocol';
+    }
+  }, [isMinimized, currentContextData.priority.title]);
 
   // Undo priority completion -> Returns to Screen 2 ('locked')
   const handleUndoPriority = useCallback(() => {
@@ -243,12 +320,28 @@ export default function App() {
     setScreenMode('locked');
   }, [updatePriority, setScreenMode]);
 
-  // Keyboard shortcut listener: Cmd+Enter, 's', Esc, 1/2/3 to switch screens, Cmd+Z to undo
+  // Keyboard shortcut listener: Space/Esc to maximize if minimized, Cmd+Enter, 's', 1/2, Cmd+Z
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isInput =
         document.activeElement?.tagName === 'INPUT' ||
         document.activeElement?.tagName === 'TEXTAREA';
+
+      // If minimized, Space or Esc restores window
+      if (isMinimized) {
+        if (e.key === ' ' || e.key === 'Escape' || e.key === 'Enter') {
+          e.preventDefault();
+          handleMaximizeWindow();
+          return;
+        }
+      }
+
+      // Cmd+, opens settings
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        setSettingsOpen(true);
+        return;
+      }
 
       // Cmd+Z or Ctrl+Z to undo when on day won screen
       if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
@@ -266,9 +359,9 @@ export default function App() {
           sounds.playCommit();
           setScreenMode('locked');
         } else if (currentContextData.screenMode === 'locked') {
-          handleCloseWebpage();
+          handleMinimizeWindow();
         } else if (currentContextData.screenMode === 'day_won') {
-          handleCloseWebpage();
+          handleMinimizeWindow();
         }
       }
 
@@ -293,30 +386,16 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentContextData, setScreenMode, toggleShelf, updateSecondaryTask, handleUndoPriority]);
-
-  if (isPageClosed) {
-    return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center bg-[#0d1016] text-[#dfe2eb] select-none p-6 text-center animate-in fade-in duration-300">
-        <div className="w-16 h-16 rounded-3xl bg-[#161a22] border border-white/10 flex items-center justify-center mb-6 shadow-2xl">
-          <span className="w-3 h-3 rounded-full bg-[#0a84ff] shadow-[0_0_16px_rgba(10,132,255,0.8)]" />
-        </div>
-        <h1 className="text-xl font-semibold text-white tracking-tight mb-2">
-          Priority Committed
-        </h1>
-        <p className="text-sm text-[#8b91a0] max-w-sm leading-relaxed mb-8">
-          Focus is set. Window closed — go about your day.
-        </p>
-        <button
-          type="button"
-          onClick={() => setIsPageClosed(false)}
-          className="px-4 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs text-[#8b91a0] hover:text-white transition-colors cursor-pointer"
-        >
-          Reopen OneFocus
-        </button>
-      </div>
-    );
-  }
+  }, [
+    isMinimized,
+    currentContextData,
+    setScreenMode,
+    toggleShelf,
+    updateSecondaryTask,
+    handleUndoPriority,
+    handleMaximizeWindow,
+    handleMinimizeWindow,
+  ]);
 
   return (
     <div className="w-screen h-screen flex flex-col bg-[#10141a] text-[#dfe2eb] relative overflow-hidden select-none">
@@ -326,7 +405,7 @@ export default function App() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[500px] bg-[#34d399]/[0.035] rounded-full blur-[160px] pointer-events-none transition-all duration-1000" />
       )}
 
-      {/* Top Bar: Date & Time (Left), Work/Life Toggle (Center), New Day Button (Right) */}
+      {/* Top Bar: Date & Time (Left), Work/Life Toggle (Center), Actions & New Day (Right) */}
       <header className="w-full max-w-5xl mx-auto px-6 pt-5 pb-2 flex items-center justify-between z-20 select-none">
         {/* Left: Live Date & Time */}
         <div className="flex items-center gap-2 text-xs text-[#8b91a0] min-w-[200px]">
@@ -353,8 +432,35 @@ export default function App() {
           <WorkLifeToggle activeContext={state.activeContext} onChange={setContext} />
         </div>
 
-        {/* Right: New Day Button (Requirement 3: Replaces Reset) */}
-        <div className="flex justify-end min-w-[200px]">
+        {/* Right: Settings, Minimize, and New Day Buttons */}
+        <div className="flex items-center justify-end gap-2 min-w-[200px]">
+          {/* Settings / Reminders Icon Button (User Request 2 & 3) */}
+          <button
+            type="button"
+            onClick={() => {
+              sounds.playClick(1.0);
+              setSettingsOpen(true);
+            }}
+            className="relative inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
+            title="Reminders & Desktop Push Notifications (Cmd+,)"
+          >
+            <Bell className="w-3.5 h-3.5" />
+            {state.reminders?.enabled && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#34d399] shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+            )}
+          </button>
+
+          {/* Minimize Window Button (User Request 1) */}
+          <button
+            type="button"
+            onClick={handleMinimizeWindow}
+            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
+            title="Minimize to floating focus dock"
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+
+          {/* New Day Button */}
           <button
             type="button"
             onClick={handleResetToStartingScreen}
@@ -368,7 +474,11 @@ export default function App() {
       </header>
 
       {/* Main View Area (Renders Screen 1, 2, or 3 based on screenMode) */}
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 pb-4">
+      <main
+        className={`flex-1 flex flex-col overflow-hidden relative z-10 pb-4 transition-all duration-300 ${
+          isMinimized ? 'opacity-20 scale-95 pointer-events-none blur-sm' : 'opacity-100 scale-100'
+        }`}
+      >
         {currentContextData.screenMode === 'setup' && (
           <SetupScreen
             context={state.activeContext}
@@ -393,7 +503,7 @@ export default function App() {
               updatePriority({ completed: true });
               setScreenMode('day_won');
             }}
-            onCloseWebpage={handleCloseWebpage}
+            onMinimizeWindow={handleMinimizeWindow}
             onOpenShelf={openShelf}
             onEmergencyUnlock={handleEmergencyUnlock}
           />
@@ -406,11 +516,33 @@ export default function App() {
             onOpenShelf={openShelf}
             onEmergencyUnlock={handleEmergencyUnlock}
             onUndoComplete={handleUndoPriority}
-            onCloseWebpage={handleCloseWebpage}
+            onMinimizeWindow={handleMinimizeWindow}
             onUpdateSecondaryTask={updateSecondaryTask}
           />
         )}
       </main>
+
+      {/* Minimized Focus Dock (User Request 1: Floating dock for web app usage) */}
+      {isMinimized && (
+        <MinimizedDock
+          priority={currentContextData.priority}
+          screenMode={currentContextData.screenMode}
+          contextName={state.activeContext}
+          onMaximize={handleMaximizeWindow}
+          onToggleComplete={() => {
+            sounds.playDayWon();
+            const nextCompleted = !currentContextData.priority.completed;
+            updatePriority({ completed: nextCompleted });
+            if (nextCompleted) {
+              setScreenMode('day_won');
+            } else {
+              setScreenMode('locked');
+            }
+          }}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onNewDay={handleResetToStartingScreen}
+        />
+      )}
 
       {/* Shelf Modal (Screen 4: pure typographic slate overlay) */}
       <ShelfModal
@@ -420,6 +552,14 @@ export default function App() {
         onAddItem={addShelfItem}
         onToggleItem={toggleShelfItem}
         onDeleteItem={deleteShelfItem}
+      />
+
+      {/* Settings Modal (User Requests 2 & 3: Custom reminder times & desktop push notifications) */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={state.reminders}
+        onUpdateSettings={updateReminderSettings}
       />
     </div>
   );
