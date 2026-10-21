@@ -108,7 +108,7 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
 
           {/* Title */}
           <h2 className="text-2xl md:text-[28px] font-semibold text-[#f0f6fc] text-center leading-snug tracking-tight max-w-lg mx-auto mb-5">
-            {priority.title}
+            {priority.title || 'One crucial priority'}
           </h2>
 
           {/* Completed Badge with Inline Undo Option */}
@@ -155,7 +155,7 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
                       task.completed ? 'line-through text-[#64748b]' : 'text-[#dfe2eb]'
                     }`}
                   >
-                    {task.title}
+                    {task.title || 'optional tasks'}
                   </span>
 
                   <span className="text-xs text-[#64748b] shrink-0 font-normal">· optional</span>

@@ -28,7 +28,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 }) => {
   const [customModalOpen, setCustomModalOpen] = useState(false);
   const [customTarget, setCustomTarget] = useState<'priority' | string>('priority');
-  const [editingSecondaryId, setEditingSecondaryId] = useState<string | null>(null);
   const [selectingTimeForTaskId, setSelectingTimeForTaskId] = useState<string | null>(null);
 
   const durationOptions = [
@@ -69,8 +68,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                 type="text"
                 value={priority.title}
                 onChange={(e) => onUpdatePriority({ title: e.target.value })}
-                placeholder="Name your single critical priority..."
-                className="w-full bg-transparent text-lg md:text-[22px] font-semibold text-[#f0f6fc] placeholder-[#4b5563] outline-none tracking-tight leading-snug"
+                placeholder="One crucial priority"
+                className="w-full bg-transparent text-lg md:text-[22px] font-semibold text-[#f0f6fc] placeholder-[#64748b]/60 outline-none tracking-tight leading-snug"
               />
             </div>
           </div>
@@ -120,11 +119,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           </div>
         </div>
 
-        {/* Secondary Tasks Stack with Time Selection */}
+        {/* Secondary Tasks Stack with Time Selection & Placeholders */}
         <div className="w-full max-w-[620px] mt-6 flex flex-col gap-3 pl-3">
           {secondaryTasks.map((task, index) => {
             const taskNumber = index + 2;
-            const isEditing = editingSecondaryId === task.id;
             const isSelectingTime = selectingTimeForTaskId === task.id;
 
             return (
@@ -132,43 +130,19 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                 key={task.id}
                 className="flex items-center justify-between gap-3 group py-1.5 px-2 rounded-xl hover:bg-white/[0.02] transition-colors"
               >
-                {/* Index & Title */}
+                {/* Index & Direct Input */}
                 <div className="flex items-center gap-3.5 flex-1 min-w-0">
                   <span className="font-tabular text-sm font-medium text-[#64748b] group-hover:text-[#8b91a0] w-5 text-center shrink-0">
                     {taskNumber}
                   </span>
 
-                  {isEditing ? (
-                    <div className="flex-1 flex items-center gap-2">
-                      <input
-                        type="text"
-                        autoFocus
-                        value={task.title}
-                        onChange={(e) => onUpdateSecondaryTask(task.id, { title: e.target.value })}
-                        onBlur={() => setEditingSecondaryId(null)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') setEditingSecondaryId(null);
-                        }}
-                        className="flex-1 bg-[#161a22] border border-white/15 rounded px-2.5 py-1 text-white text-sm outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setEditingSecondaryId(null)}
-                        className="p-1 text-slate-400 hover:text-white"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setEditingSecondaryId(task.id)}
-                      className="flex-1 text-left truncate text-sm font-normal text-[#8b91a0] group-hover:text-[#dfe2eb] transition-colors cursor-text"
-                      title="Click to edit task title"
-                    >
-                      {task.title || `Task #${taskNumber}`}
-                    </button>
-                  )}
+                  <input
+                    type="text"
+                    value={task.title}
+                    onChange={(e) => onUpdateSecondaryTask(task.id, { title: e.target.value })}
+                    placeholder="optional tasks"
+                    className="flex-1 bg-transparent text-sm font-normal text-[#dfe2eb] placeholder-[#64748b]/60 outline-none hover:border-b hover:border-white/10 focus:border-b focus:border-[#3b82f6]/50 transition-colors"
+                  />
                 </div>
 
                 {/* Secondary Task Time Selection */}

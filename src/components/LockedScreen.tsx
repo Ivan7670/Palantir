@@ -197,7 +197,7 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
 
               {/* Large Hero Text */}
               <h2 className="text-2xl md:text-[29px] font-semibold text-[#f0f6fc] text-center leading-snug tracking-tight max-w-lg mx-auto mb-7">
-                {priority.title}
+                {priority.title || 'One crucial priority'}
               </h2>
 
               {/* Static Duration Pill (Timer removed per request) */}
@@ -241,7 +241,7 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     <span className="font-tabular font-medium text-[#64748b]">{idx + 2}</span>
-                    <span className="truncate">{task.title}</span>
+                    <span className="truncate">{task.title || 'optional tasks'}</span>
                   </div>
                   <span className="font-tabular text-[11px] text-[#64748b] shrink-0">
                     {task.durationMinutes}m

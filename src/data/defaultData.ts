@@ -8,7 +8,7 @@ export const INITIAL_STATE: AppState = {
     screenMode: 'setup',
     priority: {
       id: 'work-p1',
-      title: 'Draft architecture proposal for memory allocator',
+      title: '',
       durationMinutes: 90,
       completed: false,
       completedTimeMinutes: 90,
@@ -16,14 +16,14 @@ export const INITIAL_STATE: AppState = {
     secondaryTasks: [
       {
         id: 'work-s2',
-        title: 'Review security pull request',
+        title: '',
         durationMinutes: 45,
         completed: false,
         optional: true,
       },
       {
         id: 'work-s3',
-        title: 'Team sync preparation',
+        title: '',
         durationMinutes: 15,
         completed: false,
         optional: true,
@@ -66,7 +66,7 @@ export const INITIAL_STATE: AppState = {
     screenMode: 'setup',
     priority: {
       id: 'life-p1',
-      title: '90-minute deep recovery run along the ridge',
+      title: '',
       durationMinutes: 90,
       completed: false,
       completedTimeMinutes: 90,
@@ -74,14 +74,14 @@ export const INITIAL_STATE: AppState = {
     secondaryTasks: [
       {
         id: 'life-s2',
-        title: 'Plan weekly family dinner menu and ingredients',
+        title: '',
         durationMinutes: 30,
         completed: false,
         optional: true,
       },
       {
         id: 'life-s3',
-        title: 'Evening mobility & hip stretch routine',
+        title: '',
         durationMinutes: 20,
         completed: false,
         optional: true,
