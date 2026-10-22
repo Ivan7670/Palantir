@@ -451,7 +451,13 @@ export default function App() {
               onEditPriority={() => {
                 setScreenMode('setup');
               }}
-              onMinimizeWindow={handleMinimizeWindow}
+              onCloseTab={() => {
+                window.close();
+                try {
+                  window.open('', '_self', '');
+                  window.close();
+                } catch {}
+              }}
               onOpenShelf={openShelf}
               onOpenSettings={() => setSettingsOpen(true)}
             />

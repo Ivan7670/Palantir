@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PriorityTask } from '../types.ts';
 import { sounds } from '../utils/audio.ts';
 
 interface LockedScreenProps {
   priority: PriorityTask;
   onCompletePriority: () => void;
-  onMinimizeWindow: () => void;
+  onCloseTab?: () => void;
   onEditPriority: () => void;
   onOpenShelf: () => void;
   onOpenSettings: () => void;
@@ -14,11 +14,13 @@ interface LockedScreenProps {
 export const LockedScreen: React.FC<LockedScreenProps> = ({
   priority,
   onCompletePriority,
-  onMinimizeWindow,
+  onCloseTab,
   onEditPriority,
   onOpenShelf,
   onOpenSettings,
 }) => {
+  const [tabCloseNotice, setTabCloseNotice] = useState(false);
+
   const formatDuration = (mins: number) => {
     if (mins >= 60) {
       const hrs = Math.floor(mins / 60);
@@ -28,9 +30,22 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
     return `${mins}m`;
   };
 
-  const handleCommitAndMinimize = () => {
+  const handleCommitAndCloseTab = () => {
     sounds.playCommit();
-    onMinimizeWindow();
+    // Cross-browser attempts to close the tab
+    window.close();
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch {}
+
+    if (onCloseTab) {
+      onCloseTab();
+    }
+
+    setTimeout(() => {
+      setTabCloseNotice(true);
+    }, 150);
   };
 
   const handleToggleComplete = () => {
@@ -39,10 +54,10 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-[90rem] mx-auto select-none">
-      {/* Central Big Focus Display: Left aligned in middle with generous length and safety padding */}
+    <div className="w-full flex-1 flex flex-col justify-between items-start px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
+      {/* Central Big Focus Display: Left aligned directly with top One Focus header */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full max-w-7xl flex flex-col items-start text-left group/main">
+        <div className="w-full flex flex-col items-start text-left group/main">
           {/* Main priority container: circle takes 0 space by default, expands to push text when hovered; clicking big text completes */}
           <div
             onClick={handleToggleComplete}
@@ -152,17 +167,25 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
           </svg>
         </button>
 
-        {/* Bottom Right: "I am committed →" (Minimizes window) */}
+        {/* Bottom Right: "I am committed →" (Closes tab) */}
         <button
           type="button"
-          onClick={handleCommitAndMinimize}
+          onClick={handleCommitAndCloseTab}
           className="text-base sm:text-lg font-bold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1 cursor-pointer"
-          title="Minimize window into focus dock (Cmd+M)"
+          title="Commit to focus and close tab"
         >
           <span>I am committed</span>
           <span className="text-xl">→</span>
         </button>
       </footer>
+
+      {/* Reassurance notice if browser policy blocks script tab closing */}
+      {tabCloseNotice && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-neutral-900 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+          <span>Locked in. You can close this tab now to focus.</span>
+        </div>
+      )}
     </div>
   );
 };

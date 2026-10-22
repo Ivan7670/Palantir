@@ -135,10 +135,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       : secondaryTasks.find((t) => t.id === customTarget)?.durationMinutes || 30;
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-[90rem] mx-auto select-none">
-      {/* Central Interactive Focus Area: Left aligned in middle with expanded width and safety padding */}
+    <div className="w-full flex-1 flex flex-col justify-between items-start px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
+      {/* Central Interactive Focus Area: Left aligned directly with top One Focus header */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full max-w-7xl flex flex-col items-start text-left">
+        <div className="w-full flex flex-col items-start text-left">
           {/* Giant Editable Priority Title (Expands to fit, bolded Cal Sans, anti-clipping line-height) */}
           <textarea
             ref={textareaRef}

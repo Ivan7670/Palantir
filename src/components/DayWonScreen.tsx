@@ -37,7 +37,11 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
 
   const handleGoodWork = () => {
     sounds.playCommit();
-    onMinimizeWindow();
+    window.close();
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch {}
   };
 
   const visibleSecondaryTasks = secondaryTasks.filter(
@@ -45,10 +49,10 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
   );
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-[90rem] mx-auto select-none">
-      {/* Central Completed Focus & Revealed Optional Tasks: Left aligned in middle with generous length and safety padding */}
+    <div className="w-full flex-1 flex flex-col justify-between items-start px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
+      {/* Central Completed Focus & Revealed Optional Tasks: Left aligned directly with top One Focus header */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full max-w-7xl flex flex-col items-start text-left">
+        <div className="w-full flex flex-col items-start text-left">
           {/* Main completed priority container: circle on the left, clicking big text toggles undo */}
           <div
             onClick={onUndoComplete}
@@ -198,12 +202,12 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
           </svg>
         </button>
 
-        {/* Bottom Right: "Good work →" (Minimizes window) */}
+        {/* Bottom Right: "Good work →" (Closes tab) */}
         <button
           type="button"
           onClick={handleGoodWork}
           className="text-base sm:text-lg font-bold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1 cursor-pointer"
-          title="Minimize window (Cmd+M)"
+          title="Day complete - close tab"
         >
           <span>Good work</span>
           <span className="text-xl">→</span>
