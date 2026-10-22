@@ -54,9 +54,9 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-start items-start px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto select-none pt-16 pb-28">
-      {/* Central Big Focus Display: 64px below header */}
-      <div className="w-full flex flex-col items-start text-left group/main">
+    <div className="w-full flex-1 flex flex-col justify-center items-start px-6 sm:px-12 lg:px-20 max-w-[1580px] mx-auto select-none pb-28 my-auto">
+      {/* Central Big Focus Display: Vertically centered in the middle of the screen */}
+      <div className="w-full flex flex-col items-start text-left group/main my-auto py-8">
         {/* Main priority container: circle takes 0 space by default, expands to push text when hovered; clicking big text completes */}
         <div
           onClick={handleToggleComplete}
@@ -115,8 +115,8 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
         </div>
 
       {/* Floating Bottom Bar: Settings Gear (Left), "I am committed →" (Right) — Shelf removed in locked focus mode */}
-      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-8 pt-4 pointer-events-none">
-        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-8 lg:px-10 relative flex items-center justify-between pointer-events-auto">
+      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-12 sm:pb-16 lg:pb-20 pt-4 pointer-events-none">
+        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-12 lg:px-20 relative flex items-center justify-between pointer-events-auto">
           {/* Bottom Left: Settings Gear */}
           <button
             type="button"

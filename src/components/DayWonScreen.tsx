@@ -54,9 +54,9 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
   );
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-start items-start px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto select-none pt-16 pb-28">
-      {/* Central Completed Focus & Revealed Optional Tasks: 64px below header */}
-      <div className="w-full flex flex-col items-start text-left">
+    <div className="w-full flex-1 flex flex-col justify-center items-start px-6 sm:px-12 lg:px-20 max-w-[1580px] mx-auto select-none pb-28 my-auto">
+      {/* Central Completed Focus & Revealed Optional Tasks: Vertically centered in the middle of the screen */}
+      <div className="w-full flex flex-col items-start text-left my-auto py-8">
         {/* Main completed priority container: circle on the left, clicking big text toggles undo */}
         <div
           onClick={onUndoComplete}
@@ -155,8 +155,8 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
         </div>
 
       {/* Floating Bottom Bar: Settings Gear (Left), Shelf (Exact Screen Center), Day Complete (Right) */}
-      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-8 pt-4 pointer-events-none">
-        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-8 lg:px-10 relative flex items-center justify-between pointer-events-auto">
+      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-12 sm:pb-16 lg:pb-20 pt-4 pointer-events-none">
+        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-12 lg:px-20 relative flex items-center justify-between pointer-events-auto">
           {/* Bottom Left: Settings Gear */}
           <button
             type="button"

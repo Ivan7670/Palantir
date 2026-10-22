@@ -59,8 +59,8 @@ export const ShelfModal: React.FC<ShelfModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-40 bg-white flex flex-col justify-between select-none animate-in fade-in duration-200">
-      {/* Top Bar matching initial mockup: "Shelf" on left, date & time on right pushed down */}
-      <header className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto pt-14 sm:pt-20 md:pt-24 pb-4 z-20 shrink-0">
+      {/* Top Bar matching initial mockup: "Shelf" on left, date & time on right moved down */}
+      <header className="w-full flex items-center justify-between px-6 sm:px-12 lg:px-20 max-w-[1580px] mx-auto pt-20 sm:pt-24 lg:pt-28 pb-0 z-20 shrink-0">
         <span className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
           Shelf
         </span>
@@ -193,8 +193,8 @@ export const ShelfModal: React.FC<ShelfModalProps> = ({
       </main>
 
       {/* Floating Bottom Bar: Caret to close (Exact Screen Center), "One Focus →" (Right) */}
-      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-8 pt-4 pointer-events-none">
-        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-8 lg:px-10 relative flex items-center justify-between pointer-events-auto">
+      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-12 sm:pb-16 lg:pb-20 pt-4 pointer-events-none">
+        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-12 lg:px-20 relative flex items-center justify-between pointer-events-auto">
           <div className="w-10" />
 
           {/* Exact Screen Center: Caret Down to close with Label */}

@@ -480,8 +480,8 @@ export default function App() {
             : 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
         }`}
       >
-        {/* Fixed Top Anchors: "One Focus" (top-left) & Date/Time (top-right) */}
-        <header className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto pt-8 sm:pt-10 md:pt-12 pb-0 z-20 shrink-0">
+        {/* Fixed Top Anchors: "One Focus" (top-left) & Date/Time (top-right) moved down */}
+        <header className="w-full flex items-center justify-between px-6 sm:px-12 lg:px-20 max-w-[1580px] mx-auto pt-20 sm:pt-24 lg:pt-28 pb-0 z-20 shrink-0">
           <span className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
             One Focus
           </span>

@@ -135,9 +135,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       : secondaryTasks.find((t) => t.id === customTarget)?.durationMinutes || 30;
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-start items-start px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto select-none pt-16 pb-28">
-      {/* Central Interactive Focus Area: 64px below header */}
-      <div className="w-full flex flex-col items-start text-left">
+    <div className="w-full flex-1 flex flex-col justify-center items-start px-6 sm:px-12 lg:px-20 max-w-[1580px] mx-auto select-none pb-28 my-auto">
+      {/* Central Interactive Focus Area: Vertically centered in the middle of the screen */}
+      <div className="w-full flex flex-col items-start text-left my-auto py-8">
         {/* Giant Editable Priority Title (Expands to fit, bolded Cal Sans, anti-clipping line-height) */}
         <textarea
           ref={textareaRef}
@@ -161,23 +161,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           className="w-full bg-transparent font-cal font-bold text-6xl sm:text-7xl md:text-8xl lg:text-[128px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.18] sm:leading-[1.14] border-none focus:ring-0 p-0 overflow-hidden block"
         />
 
-        {/* Live Word Count Validation Feedback with 64px gap from main text */}
+        {/* Live Word Count Validation Feedback with 80px gap from main text */}
         {hasTyped && !isSatisfied && (
-          <div className="mt-16 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
+          <div className="mt-20 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
             <span className="w-2 h-2 rounded-full bg-[#e05252] shrink-0" />
             <span>Minimum 6 words · Current {wordCount}</span>
           </div>
         )}
 
         {validationAttempted && !hasTyped && (
-          <div className="mt-16 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
+          <div className="mt-20 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
             <span className="w-2 h-2 rounded-full bg-[#e05252] shrink-0" />
             <span>Minimum 6 words · Current 0</span>
           </div>
         )}
 
         {hasTyped && isSatisfied && (
-          <div className="mt-16 flex items-center gap-2 text-xs font-medium tracking-wide text-neutral-400 animate-in fade-in duration-150 text-left">
+          <div className="mt-20 flex items-center gap-2 text-xs font-medium tracking-wide text-neutral-400 animate-in fade-in duration-150 text-left">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
             <span>Minimum 6 words satisfied · {wordCount} words</span>
           </div>
@@ -314,8 +314,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       )}
 
       {/* Floating Bottom Bar: Settings Gear (Left), Shelf (Exact Screen Center), Commit Button (Right) */}
-      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-8 pt-4 pointer-events-none">
-        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-8 lg:px-10 relative flex items-center justify-between pointer-events-auto">
+      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-12 sm:pb-16 lg:pb-20 pt-4 pointer-events-none">
+        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-12 lg:px-20 relative flex items-center justify-between pointer-events-auto">
           {/* Bottom Left: Settings Gear */}
           <button
             type="button"
