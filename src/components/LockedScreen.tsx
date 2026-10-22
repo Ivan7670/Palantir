@@ -89,7 +89,7 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
             {/* Giant Title: Flush left identical to original screen when not hovered, pushed when hovered, anti-clipping line-height */}
             <h1
               style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-              className="flex-1 text-7xl sm:text-8xl md:text-9xl lg:text-[140px] xl:text-[170px] font-cal font-bold tracking-tight text-neutral-900 leading-[1.18] sm:leading-[1.14] pt-2 pb-6 px-1 text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-85"
+              className="flex-1 text-6xl sm:text-7xl md:text-8xl lg:text-[128px] font-cal font-bold tracking-tight text-neutral-900 leading-[1.18] sm:leading-[1.14] pt-2 pb-6 px-1 text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-85"
             >
               {priority.title || 'One crucial priority'}
             </h1>

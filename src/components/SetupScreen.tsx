@@ -53,7 +53,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     if (!el) return;
     el.style.height = '0px';
     const scrollH = el.scrollHeight;
-    el.style.height = `${Math.max(scrollH + 52, 220)}px`;
+    el.style.height = `${Math.max(scrollH + 32, 160)}px`;
   }, []);
 
   // Auto-resize textarea to fit content seamlessly without clipping
@@ -149,7 +149,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
               if (validationAttempted) setValidationAttempted(false);
               // Instant auto-expansion on keystroke
               e.target.style.height = '0px';
-              e.target.style.height = `${Math.max(e.target.scrollHeight + 52, 220)}px`;
+              e.target.style.height = `${Math.max(e.target.scrollHeight + 32, 160)}px`;
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -159,7 +159,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             }}
             placeholder="One thing to satisfy your day."
             style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-            className="w-full bg-transparent font-cal font-bold text-7xl sm:text-8xl md:text-9xl lg:text-[140px] xl:text-[170px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.18] sm:leading-[1.14] border-none focus:ring-0 p-0 pt-2 pb-6 px-1 overflow-hidden block"
+            className="w-full bg-transparent font-cal font-bold text-6xl sm:text-7xl md:text-8xl lg:text-[128px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.18] sm:leading-[1.14] border-none focus:ring-0 p-0 pt-2 pb-6 px-1 overflow-hidden block"
           />
 
           {/* Live Word Count Validation Feedback with consistent dot on both */}

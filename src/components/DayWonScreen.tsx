@@ -83,7 +83,7 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
             {/* Strikethrough Completed Title: anti-clipping line-height */}
             <h1
               style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-              className="flex-1 text-7xl sm:text-8xl md:text-9xl lg:text-[140px] xl:text-[170px] font-cal font-bold tracking-tight text-neutral-400 line-through leading-[1.18] sm:leading-[1.14] pt-2 pb-6 px-1 text-left transition-colors hover:text-neutral-500"
+              className="flex-1 text-6xl sm:text-7xl md:text-8xl lg:text-[128px] font-cal font-bold tracking-tight text-neutral-400 line-through leading-[1.18] sm:leading-[1.14] pt-2 pb-6 px-1 text-left transition-colors hover:text-neutral-500"
             >
               {priority.title || 'One crucial priority'}
             </h1>
