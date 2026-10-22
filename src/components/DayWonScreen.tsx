@@ -45,10 +45,10 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
   );
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 max-w-5xl mx-auto select-none">
-      {/* Central Completed Focus & Revealed Optional Tasks: Left aligned in middle */}
+    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
+      {/* Central Completed Focus & Revealed Optional Tasks: Left aligned in middle with generous length */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full max-w-4xl flex flex-col items-start text-left">
+        <div className="w-full max-w-6xl flex flex-col items-start text-left">
           {/* Completed Checkmark Circle: Clicking undoes completion */}
           <button
             type="button"
@@ -69,14 +69,14 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
             </svg>
           </button>
 
-          {/* Strikethrough Completed Title (3x larger, left aligned, bolded Cal Sans) */}
+          {/* Strikethrough Completed Title (Longer box, 3x larger, bolded Cal Sans, anti-clipping) */}
           <h1
             onClick={() => {
               sounds.playClick(0.9);
               onUndoComplete();
             }}
             style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-            className="w-full text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-cal font-bold tracking-tight text-neutral-400 line-through leading-[1.02] sm:leading-[0.95] text-left cursor-pointer hover:text-neutral-500 transition-colors"
+            className="w-full text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-cal font-bold tracking-tight text-neutral-400 line-through leading-[1.12] sm:leading-[1.08] pb-3 text-left cursor-pointer hover:text-neutral-500 transition-colors"
             title="Click to undo completion"
           >
             {priority.title || 'One crucial priority'}

@@ -33,11 +33,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     textareaRef.current?.focus();
   }, []);
 
-  // Auto-resize textarea to fit content seamlessly
+  // Auto-resize textarea to fit content seamlessly without clipping
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.max(140, textareaRef.current.scrollHeight)}px`;
+      const scrollH = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.max(180, scrollH + 24)}px`;
     }
   }, [priority.title]);
 
@@ -81,11 +82,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       : secondaryTasks.find((t) => t.id === customTarget)?.durationMinutes || 15;
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 max-w-5xl mx-auto select-none">
-      {/* Central Interactive Focus Area: Left aligned in middle */}
+    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
+      {/* Central Interactive Focus Area: Left aligned in middle with generous width */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full max-w-4xl flex flex-col items-start text-left">
-          {/* Giant Editable Priority Title (3x larger, left aligned, bolded Cal Sans) */}
+        <div className="w-full max-w-6xl flex flex-col items-start text-left">
+          {/* Giant Editable Priority Title (Longer box, 3x larger, bolded Cal Sans, anti-clipping line-height) */}
           <textarea
             ref={textareaRef}
             rows={2}
@@ -102,7 +103,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             }}
             placeholder="One thing to satisfy your day."
             style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-            className="w-full bg-transparent font-cal font-bold text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.02] sm:leading-[0.95] border-none focus:ring-0 p-0"
+            className="w-full bg-transparent font-cal font-bold text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.12] sm:leading-[1.08] border-none focus:ring-0 p-0 pt-1 pb-4 overflow-hidden block"
           />
 
           {/* Live Word Count Validation Feedback with consistent dot on both */}

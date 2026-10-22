@@ -426,7 +426,7 @@ export default function App() {
         </header>
 
         {/* Main Focus Area: Screen 1 (setup), Screen 2 (locked), or Screen 3 (day_won) */}
-        <main className="flex-1 flex flex-col overflow-hidden relative z-10">
+        <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden relative z-10">
           {state.screenMode === 'setup' && (
             <SetupScreen
               priority={state.priority}
