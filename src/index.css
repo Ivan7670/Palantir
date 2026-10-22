@@ -21,7 +21,7 @@
 
 .font-cal {
   font-family: var(--font-cal);
-  letter-spacing: 0%;
+  letter-spacing: 0.5%;
 }
 
 .font-tabular {
