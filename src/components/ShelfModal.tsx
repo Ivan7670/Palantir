@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Folder, X, Plus } from 'lucide-react';
 import { ShelfItem } from '../types.ts';
 import { sounds } from '../utils/audio.ts';
 
@@ -10,6 +9,7 @@ interface ShelfModalProps {
   onAddItem: (item: { title: string; durationMinutes: number }) => void;
   onToggleItem: (id: string) => void;
   onDeleteItem: (id: string) => void;
+  formattedDateTime: string;
 }
 
 export const ShelfModal: React.FC<ShelfModalProps> = ({
@@ -19,6 +19,7 @@ export const ShelfModal: React.FC<ShelfModalProps> = ({
   onAddItem,
   onToggleItem,
   onDeleteItem,
+  formattedDateTime,
 }) => {
   const [newTitle, setNewTitle] = useState('');
   const [newDuration, setNewDuration] = useState(10);
@@ -45,12 +46,6 @@ export const ShelfModal: React.FC<ShelfModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Active (non-completed) items for calculation
-  const totalMinutes = items
-    .filter((item) => !item.completed)
-    .reduce((sum, item) => sum + item.durationMinutes, 0);
-  const activeCount = items.filter((item) => !item.completed).length;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
@@ -63,156 +58,177 @@ export const ShelfModal: React.FC<ShelfModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-200 animate-in fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          sounds.playClick(0.9);
-          onClose();
-        }
-      }}
-    >
-      <div className="w-full max-w-[540px] bg-[#161a22]/95 border border-white/[0.1] rounded-2xl shadow-[0_24px_50px_rgba(0,0,0,0.85)] p-5 flex flex-col gap-4 text-[#dfe2eb]">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-1">
-          <div className="flex items-center gap-2.5">
-            <Folder className="w-4 h-4 text-[#8b91a0]" />
-            <h2 className="text-[17px] font-semibold text-white tracking-tight">Shelf</h2>
-          </div>
+    <div className="fixed inset-0 z-40 bg-white flex flex-col justify-between select-none animate-in fade-in duration-200">
+      {/* Top Bar matching screenshot 1: "Shelf" on left, date & time on right */}
+      <header className="w-full flex items-center justify-between px-8 sm:px-12 pt-8 pb-4 z-20">
+        <span className="text-base sm:text-lg font-bold text-neutral-900 tracking-tight">
+          Shelf
+        </span>
+        <span className="text-sm sm:text-base font-medium text-neutral-500 tracking-tight font-tabular">
+          {formattedDateTime}
+        </span>
+      </header>
 
-          <div className="flex items-center gap-2.5">
-            {/* Parked count badge */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1c2432] border border-[#3b82f6]/25 text-[#93c5fd] text-xs font-tabular">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#34d399]" />
-              <span>
-                {totalMinutes}m parked <span className="opacity-40">·</span> {activeCount} items
-              </span>
-            </div>
-
-            {/* Esc close badge */}
-            <button
-              type="button"
-              onClick={() => {
-                sounds.playClick(0.9);
-                onClose();
-              }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-mono text-[#8b91a0] hover:text-white transition-all cursor-pointer"
-            >
-              <span>Esc</span>
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        </div>
-
-        {/* Task list */}
-        <div className="flex flex-col gap-1.5 max-h-[380px] overflow-y-auto pr-1">
+      {/* Main List Area */}
+      <main className="w-full flex-1 flex flex-col items-center justify-center px-6 sm:px-12 max-w-2xl mx-auto overflow-y-auto my-auto py-6">
+        <div className="w-full flex flex-col gap-4">
           {items.length === 0 ? (
-            <div className="py-8 text-center text-xs text-[#8b91a0]">
+            <div className="text-center py-12 text-neutral-400 font-medium text-base">
               The shelf is empty. Park micro-tasks here (&lt;15m) so they don&apos;t break your focus.
             </div>
           ) : (
             items.map((item) => (
               <div
                 key={item.id}
-                className={`group flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all ${
-                  item.completed
-                    ? 'border-white/[0.03] bg-white/[0.01] opacity-50'
-                    : 'border-white/[0.06] bg-[#1a1f28]/70 hover:bg-[#1f2531]/80 hover:border-white/15'
-                }`}
+                className="group flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-neutral-50 transition-colors cursor-pointer"
+                onClick={() => {
+                  sounds.playClick(item.completed ? 0.9 : 1.3);
+                  onToggleItem(item.id);
+                }}
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0 mr-3">
+                <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
+                  {/* Circular radio button outline */}
                   <button
                     type="button"
-                    onClick={() => {
-                      sounds.playClick(item.completed ? 0.9 : 1.4);
-                      onToggleItem(item.id);
-                    }}
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                       item.completed
-                        ? 'border-[#34d399] bg-[#34d399]/20 text-[#34d399]'
-                        : 'border-[#4b5563] group-hover:border-[#9ca3af]'
+                        ? 'border-emerald-500 bg-emerald-500 text-white'
+                        : 'border-neutral-400 group-hover:border-neutral-700'
                     }`}
                   >
-                    {item.completed && <span className="w-1.5 h-1.5 rounded-full bg-[#34d399]" />}
+                    {item.completed && (
+                      <svg
+                        className="w-3 h-3 stroke-[3]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
                   </button>
 
                   <span
-                    className={`text-sm tracking-tight truncate ${
-                      item.completed ? 'line-through text-[#64748b]' : 'text-[#dfe2eb]'
+                    className={`text-lg sm:text-xl font-bold tracking-tight truncate ${
+                      item.completed ? 'line-through text-neutral-400' : 'text-neutral-900'
                     }`}
                   >
                     {item.title}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-tabular text-[11px] font-medium text-[#34d399] bg-[#122820] border border-[#34d399]/25 px-2 py-0.5 rounded-md">
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm sm:text-base font-bold text-neutral-400 font-tabular">
                     {item.durationMinutes}m
                   </span>
 
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       sounds.playClick(0.7);
                       onDeleteItem(item.id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-[#64748b] hover:text-[#f87171] transition-opacity"
-                    title="Remove from shelf"
+                    className="opacity-0 group-hover:opacity-100 p-1 text-neutral-300 hover:text-red-500 transition-opacity"
+                    title="Remove item"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
             ))
           )}
-        </div>
 
-        {/* Input form at bottom */}
-        <form onSubmit={handleSubmit} className="mt-1">
-          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-white/[0.1] bg-[#12161e]/90 focus-within:border-[#3b82f6]/50 focus-within:ring-1 focus-within:ring-[#3b82f6]/30 transition-all">
-            <Plus className="w-4 h-4 text-[#64748b] shrink-0" />
+          {/* Quick Add Form */}
+          <form onSubmit={handleSubmit} className="mt-4 pt-4 border-t border-neutral-100">
+            <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-neutral-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-neutral-900/10 transition-all">
+              <span className="text-neutral-400 text-lg font-bold">+</span>
+              <input
+                ref={inputRef}
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Add quick task to shelf..."
+                className="bg-transparent text-base text-neutral-900 placeholder-neutral-400 outline-none flex-1 min-w-0 font-medium"
+              />
 
-            <input
-              ref={inputRef}
-              type="text"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Add quick task..."
-              className="bg-transparent text-sm text-[#dfe2eb] placeholder-[#4b5563] outline-none flex-1 min-w-0 font-normal"
-            />
+              {/* Preset durations */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {[5, 10, 15].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => {
+                      sounds.playClick(1.1);
+                      setNewDuration(d);
+                    }}
+                    className={`px-2 py-0.5 text-xs font-bold rounded cursor-pointer transition-colors ${
+                      newDuration === d
+                        ? 'bg-neutral-900 text-white'
+                        : 'text-neutral-400 hover:text-neutral-700'
+                    }`}
+                  >
+                    {d}m
+                  </button>
+                ))}
+              </div>
 
-            {/* Quick duration selection pills */}
-            <div className="flex items-center gap-1 shrink-0">
-              {[5, 10, 15].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => {
-                    sounds.playClick(1.1);
-                    setNewDuration(d);
-                  }}
-                  className={`px-1.5 py-0.5 text-[10px] font-tabular rounded transition-colors ${
-                    newDuration === d
-                      ? 'bg-[#3b82f6]/30 text-[#93c5fd] font-semibold border border-[#3b82f6]/40'
-                      : 'text-[#64748b] hover:text-[#94a3b8]'
-                  }`}
-                >
-                  {d}m
-                </button>
-              ))}
+              <button
+                type="submit"
+                disabled={!newTitle.trim()}
+                className="text-xs font-bold text-neutral-900 disabled:opacity-30 transition-opacity px-2 py-1"
+              >
+                Add
+              </button>
             </div>
+          </form>
+        </div>
+      </main>
 
-            <button
-              type="submit"
-              disabled={!newTitle.trim()}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono text-[#64748b] group-focus-within:text-[#94a3b8] hover:text-white transition-colors disabled:opacity-40"
-            >
-              <span className="text-[12px]">↵</span>
-              <span>to add</span>
-            </button>
-          </div>
-        </form>
-      </div>
+      {/* Bottom Bar: Caret to close (Center), "One Focus →" to return (Right) */}
+      <footer className="w-full flex items-center justify-between px-8 sm:px-12 pb-8 pt-4 z-20">
+        <div className="w-10" />
+
+        {/* Bottom Center: Caret Down to close */}
+        <button
+          type="button"
+          onClick={() => {
+            sounds.playClick(1.0);
+            onClose();
+          }}
+          className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-neutral-900 transition-colors cursor-pointer group"
+          title="Close Shelf ('s' or Esc)"
+        >
+          <svg
+            className="w-5 h-5 stroke-[2] transform transition-transform group-hover:translate-y-0.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {/* Bottom Right: "One Focus →" */}
+        <button
+          type="button"
+          onClick={() => {
+            sounds.playClick(1.0);
+            onClose();
+          }}
+          className="text-base sm:text-lg font-bold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1 cursor-pointer"
+        >
+          <span>One Focus</span>
+          <span className="text-xl">→</span>
+        </button>
+      </footer>
     </div>
   );
 };

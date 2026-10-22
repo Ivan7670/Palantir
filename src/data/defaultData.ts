@@ -10,112 +10,57 @@ export const INITIAL_REMINDERS: ReminderSettings = {
 };
 
 export const INITIAL_STATE: AppState = {
-  activeContext: 'work',
+  screenMode: 'setup',
   shelfOpen: false,
   soundEnabled: true,
   reminders: INITIAL_REMINDERS,
-  work: {
-    screenMode: 'setup',
-    priority: {
-      id: 'work-p1',
-      title: '',
-      durationMinutes: 90,
-      completed: false,
-      completedTimeMinutes: 90,
-    },
-    secondaryTasks: [
-      {
-        id: 'work-s2',
-        title: '',
-        durationMinutes: 45,
-        completed: false,
-        optional: true,
-      },
-      {
-        id: 'work-s3',
-        title: '',
-        durationMinutes: 15,
-        completed: false,
-        optional: true,
-      },
-    ],
-    shelf: [
-      {
-        id: 'shelf-1',
-        title: 'Reply to Alex re: API migration review',
-        durationMinutes: 5,
-        completed: false,
-      },
-      {
-        id: 'shelf-2',
-        title: 'Submit expense receipts for October',
-        durationMinutes: 10,
-        completed: false,
-      },
-      {
-        id: 'shelf-3',
-        title: 'Schedule 1:1 with Sarah',
-        durationMinutes: 10,
-        completed: false,
-      },
-      {
-        id: 'shelf-4',
-        title: 'Order replacement USB-C cable',
-        durationMinutes: 5,
-        completed: false,
-      },
-      {
-        id: 'shelf-5',
-        title: 'Review staging log alerts',
-        durationMinutes: 10,
-        completed: false,
-      },
-    ],
+  priority: {
+    id: 'priority-1',
+    title: '',
+    durationMinutes: 60,
+    completed: false,
+    completedTimeMinutes: 60,
   },
-  life: {
-    screenMode: 'setup',
-    priority: {
-      id: 'life-p1',
+  secondaryTasks: [
+    {
+      id: 'secondary-2',
       title: '',
-      durationMinutes: 90,
+      durationMinutes: 30,
       completed: false,
-      completedTimeMinutes: 90,
+      optional: true,
     },
-    secondaryTasks: [
-      {
-        id: 'life-s2',
-        title: '',
-        durationMinutes: 30,
-        completed: false,
-        optional: true,
-      },
-      {
-        id: 'life-s3',
-        title: '',
-        durationMinutes: 20,
-        completed: false,
-        optional: true,
-      },
-    ],
-    shelf: [
-      {
-        id: 'life-sh1',
-        title: 'Call vet to confirm vaccination appointment',
-        durationMinutes: 5,
-        completed: false,
-      },
-      {
-        id: 'life-sh2',
-        title: 'Refill water filter cartridges',
-        durationMinutes: 5,
-        completed: false,
-      },
-      {
-        id: 'life-sh3',
-        title: 'Drop off dry cleaning',
-        durationMinutes: 15,
-        completed: false,
-      },
-    ],
-  },
+    {
+      id: 'secondary-3',
+      title: '',
+      durationMinutes: 15,
+      completed: false,
+      optional: true,
+    },
+  ],
+  shelf: [
+    {
+      id: 'shelf-1',
+      title: 'Reply to Alex re: API migration review',
+      durationMinutes: 5,
+      completed: false,
+    },
+    {
+      id: 'shelf-2',
+      title: 'Submit expense receipts for October',
+      durationMinutes: 10,
+      completed: false,
+    },
+    {
+      id: 'shelf-3',
+      title: 'Schedule 1:1 sync',
+      durationMinutes: 10,
+      completed: false,
+    },
+    {
+      id: 'shelf-4',
+      title: 'Order replacement USB-C cable',
+      durationMinutes: 5,
+      completed: false,
+    },
+  ],
 };

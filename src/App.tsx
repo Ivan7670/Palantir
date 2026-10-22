@@ -4,18 +4,15 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Calendar, RotateCcw, Bell } from 'lucide-react';
 import {
   AppState,
   ScreenMode,
-  WorkLifeContext,
   PriorityTask,
   SecondaryTask,
   ReminderSettings,
 } from './types.ts';
 import { INITIAL_STATE } from './data/defaultData.ts';
 import { sounds } from './utils/audio.ts';
-import { WorkLifeToggle } from './components/WorkLifeToggle.tsx';
 import { SetupScreen } from './components/SetupScreen.tsx';
 import { LockedScreen } from './components/LockedScreen.tsx';
 import { DayWonScreen } from './components/DayWonScreen.tsx';
@@ -30,8 +27,9 @@ import {
   startTabTitleAlert,
 } from './utils/notifications.ts';
 
-const STORAGE_KEY = 'onefocus_state_v1';
-const LEGACY_STORAGE_KEY = 'zenith_focus_state_v3';
+const STORAGE_KEY = 'onefocus_state_v2';
+const LEGACY_STORAGE_KEY_V1 = 'onefocus_state_v1';
+const LEGACY_STORAGE_KEY_ZENITH = 'zenith_focus_state_v3';
 
 export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -41,21 +39,44 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Format date/time matching user mockup: "October 21 - 4:00AM"
+  const month = currentTime.toLocaleDateString('en-US', { month: 'long' });
+  const day = currentTime.getDate();
+  const timeStr = currentTime
+    .toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    .replace(' ', '');
+  const formattedDateTime = `${month} ${day} - ${timeStr}`;
+
+  // App state with smooth backward compatibility migration
   const [state, setState] = useState<AppState>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+      const saved =
+        localStorage.getItem(STORAGE_KEY) ||
+        localStorage.getItem(LEGACY_STORAGE_KEY_V1) ||
+        localStorage.getItem(LEGACY_STORAGE_KEY_ZENITH);
       if (saved) {
         const parsed = JSON.parse(saved);
+        // If legacy work/life format
+        if (parsed.work && !parsed.priority) {
+          const src = parsed[parsed.activeContext || 'work'] || parsed.work;
+          return {
+            ...INITIAL_STATE,
+            ...parsed,
+            priority: src.priority || INITIAL_STATE.priority,
+            secondaryTasks: src.secondaryTasks || INITIAL_STATE.secondaryTasks,
+            shelf: src.shelf || INITIAL_STATE.shelf,
+            screenMode: src.screenMode || 'setup',
+            reminders: { ...INITIAL_STATE.reminders, ...(parsed.reminders || {}) },
+          };
+        }
         return {
           ...INITIAL_STATE,
           ...parsed,
           reminders: { ...INITIAL_STATE.reminders, ...(parsed.reminders || {}) },
-          work: { ...INITIAL_STATE.work, ...parsed.work },
-          life: { ...INITIAL_STATE.life, ...parsed.life },
         };
       }
     } catch {
-      // Fallback
+      // Fallback to initial
     }
     return INITIAL_STATE;
   });
@@ -81,35 +102,19 @@ export default function App() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      // Ignore storage errors
+      // Ignore
     }
   }, [state]);
 
-  const currentContextData = state[state.activeContext];
-
-  // Handlers for switching contexts
-  const setContext = useCallback((context: WorkLifeContext) => {
+  // Handlers for switching screen modes
+  const setScreenMode = useCallback((mode: ScreenMode) => {
     setState((prev) => ({
       ...prev,
-      activeContext: context,
+      screenMode: mode,
     }));
   }, []);
 
-  // Handlers for switching screen modes
-  const setScreenMode = useCallback(
-    (mode: ScreenMode) => {
-      setState((prev) => ({
-        ...prev,
-        [prev.activeContext]: {
-          ...prev[prev.activeContext],
-          screenMode: mode,
-        },
-      }));
-    },
-    []
-  );
-
-  // Toggle shelf modal
+  // Toggle shelf drawer
   const toggleShelf = useCallback(() => {
     setState((prev) => ({
       ...prev,
@@ -131,16 +136,13 @@ export default function App() {
     }));
   }, []);
 
-  // Update current priority
+  // Update priority
   const updatePriority = useCallback((updates: Partial<PriorityTask>) => {
     setState((prev) => ({
       ...prev,
-      [prev.activeContext]: {
-        ...prev[prev.activeContext],
-        priority: {
-          ...prev[prev.activeContext].priority,
-          ...updates,
-        },
+      priority: {
+        ...prev.priority,
+        ...updates,
       },
     }));
   }, []);
@@ -149,12 +151,7 @@ export default function App() {
   const updateSecondaryTask = useCallback((id: string, updates: Partial<SecondaryTask>) => {
     setState((prev) => ({
       ...prev,
-      [prev.activeContext]: {
-        ...prev[prev.activeContext],
-        secondaryTasks: prev[prev.activeContext].secondaryTasks.map((t) =>
-          t.id === id ? { ...t, ...updates } : t
-        ),
-      },
+      secondaryTasks: prev.secondaryTasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     }));
   }, []);
 
@@ -162,91 +159,62 @@ export default function App() {
   const addShelfItem = useCallback((item: { title: string; durationMinutes: number }) => {
     setState((prev) => ({
       ...prev,
-      [prev.activeContext]: {
-        ...prev[prev.activeContext],
-        shelf: [
-          ...prev[prev.activeContext].shelf,
-          {
-            id: `shelf-${Date.now()}`,
-            title: item.title,
-            durationMinutes: item.durationMinutes,
-            completed: false,
-          },
-        ],
-      },
+      shelf: [
+        ...prev.shelf,
+        {
+          id: `shelf-${Date.now()}`,
+          title: item.title,
+          durationMinutes: item.durationMinutes,
+          completed: false,
+        },
+      ],
     }));
   }, []);
 
   const toggleShelfItem = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
-      [prev.activeContext]: {
-        ...prev[prev.activeContext],
-        shelf: prev[prev.activeContext].shelf.map((item) =>
-          item.id === id ? { ...item, completed: !item.completed } : item
-        ),
-      },
+      shelf: prev.shelf.map((item) =>
+        item.id === id ? { ...item, completed: !item.completed } : item
+      ),
     }));
   }, []);
 
   const deleteShelfItem = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
-      [prev.activeContext]: {
-        ...prev[prev.activeContext],
-        shelf: prev[prev.activeContext].shelf.filter((item) => item.id !== id),
-      },
+      shelf: prev.shelf.filter((item) => item.id !== id),
     }));
   }, []);
 
-  // Emergency Unlock -> Returns to Screen 1 ('setup')
+  // Emergency Unlock -> Returns directly to Screen 1 ('setup')
   const handleEmergencyUnlock = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      [prev.activeContext]: {
-        ...prev[prev.activeContext],
-        screenMode: 'setup',
-        priority: {
-          ...prev[prev.activeContext].priority,
-          completed: false,
-        },
+      screenMode: 'setup',
+      priority: {
+        ...prev.priority,
+        completed: false,
       },
     }));
   }, []);
 
-  // Reset back to starting screen (setup) with empty inputs
+  // New Day -> Reset to setup screen with empty inputs
   const handleResetToStartingScreen = useCallback(() => {
     sounds.playClick(0.8);
     setState((prev) => ({
       ...prev,
-      work: {
-        ...prev.work,
-        screenMode: 'setup',
-        priority: {
-          ...prev.work.priority,
-          title: '',
-          completed: false,
-        },
-        secondaryTasks: prev.work.secondaryTasks.map((t) => ({
-          ...t,
-          title: '',
-          completed: false,
-        })),
+      screenMode: 'setup',
+      priority: {
+        ...prev.priority,
+        title: '',
+        completed: false,
       },
-      life: {
-        ...prev.life,
-        screenMode: 'setup',
-        priority: {
-          ...prev.life.priority,
-          title: '',
-          completed: false,
-        },
-        secondaryTasks: prev.life.secondaryTasks.map((t) => ({
-          ...t,
-          title: '',
-          completed: false,
-        })),
-      },
+      secondaryTasks: prev.secondaryTasks.map((t) => ({
+        ...t,
+        title: '',
+        completed: false,
+      })),
       shelfOpen: false,
     }));
   }, []);
@@ -263,7 +231,7 @@ export default function App() {
     setIsMinimized(false);
   }, []);
 
-  // Update reminder settings (User Request 2 & 3)
+  // Update reminder settings
   const updateReminderSettings = useCallback((updates: Partial<ReminderSettings>) => {
     setState((prev) => ({
       ...prev,
@@ -274,16 +242,13 @@ export default function App() {
     }));
   }, []);
 
-  // Trigger reminder notification with dual delivery:
-  // 1. In-app macOS Sequoia floating banner (guaranteed visual delivery even if OS Do Not Disturb is ON)
-  // 2. Native desktop push via Service Worker / Web Notification API
-  // 3. Tab title flashing alert & audio chime (bulletproof fallback for Brave Shields)
+  // Trigger reminder notification with dual delivery & Brave fallbacks
   const triggerReminderNotification = useCallback(
-    (priority: PriorityTask, contextName: string) => {
+    (priority: PriorityTask) => {
       const hasTitle = priority.title && priority.title.trim().length > 0;
       const title = priority.completed
-        ? `OneFocus · Priority Done! (${contextName.toUpperCase()})`
-        : `OneFocus · Priority Reminder (${contextName.toUpperCase()})`;
+        ? 'OneFocus · Priority Done!'
+        : 'OneFocus · Priority Reminder';
 
       const body = priority.completed
         ? `Great job! You've completed "${priority.title || 'your main priority'}". The day is won.`
@@ -291,23 +256,19 @@ export default function App() {
         ? `Current Focus: "${priority.title}" (${priority.durationMinutes}m planned). Stay locked in!`
         : 'Reminder: Set your ONE crucial priority for today to win the day!';
 
-      // 1. Show floating on-screen banner
       setActiveToast({
         id: `toast-${Date.now()}`,
         title,
         body,
-        contextName,
         durationMinutes: priority.durationMinutes,
         type: priority.completed ? 'completed' : 'reminder',
       });
 
-      // 2. Trigger tab title alert if minimized or tab is in background
       if (isMinimized || (typeof document !== 'undefined' && (document.hidden || !document.hasFocus()))) {
         startTabTitleAlert(hasTitle ? priority.title : 'Check in on priority');
       }
 
-      // 3. Dispatch native OS desktop push
-      sendPriorityReminderNotification(priority, contextName, () => {
+      sendPriorityReminderNotification(priority, 'Focus', () => {
         setIsMinimized(false);
         stopTabTitleAlert();
       }).catch((err) => {
@@ -317,7 +278,7 @@ export default function App() {
     [isMinimized]
   );
 
-  // Background check for scheduled reminder times & recurring intervals (User Request 2 & 3)
+  // Background check for scheduled reminder times & recurring intervals
   useEffect(() => {
     if (!state.reminders?.enabled) return;
 
@@ -327,63 +288,55 @@ export default function App() {
       const minutes = now.getMinutes();
       const currentMinuteStr = `${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}`;
 
-      // 1. Check Specific Times
       if (
         state.reminders.specificTimes.includes(currentMinuteStr) &&
         lastNotifiedMinuteRef.current !== currentMinuteStr
       ) {
         lastNotifiedMinuteRef.current = currentMinuteStr;
-        triggerReminderNotification(currentContextData.priority, state.activeContext);
+        triggerReminderNotification(state.priority);
       }
 
-      // 2. Check Recurring Interval
       if (state.reminders.intervalEnabled && state.reminders.intervalMinutes > 0) {
         const intervalMs = state.reminders.intervalMinutes * 60 * 1000;
         if (Date.now() - lastIntervalNotifiedAtRef.current >= intervalMs) {
           lastIntervalNotifiedAtRef.current = Date.now();
-          triggerReminderNotification(currentContextData.priority, state.activeContext);
+          triggerReminderNotification(state.priority);
         }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [
-    state.reminders,
-    currentContextData.priority,
-    state.activeContext,
-    triggerReminderNotification,
-  ]);
+  }, [state.reminders, state.priority, triggerReminderNotification]);
 
-  // Synchronize dynamic document title when minimized vs full window
+  // Synchronize document title
   useEffect(() => {
     if (typeof document !== 'undefined' && document.title.startsWith('🔔')) {
-      return; // Do not overwrite active reminder tab alert
+      return;
     }
     if (isMinimized) {
-      const taskTitle = currentContextData.priority.title.trim();
+      const taskTitle = state.priority.title.trim();
       document.title = taskTitle
         ? `● ${taskTitle.length > 25 ? taskTitle.slice(0, 25) + '…' : taskTitle} — OneFocus`
         : '● Focus — OneFocus';
     } else {
       document.title = 'OneFocus — The One Thing Protocol';
     }
-  }, [isMinimized, currentContextData.priority.title]);
+  }, [isMinimized, state.priority.title]);
 
-  // Undo priority completion -> Returns to Screen 2 ('locked')
+  // Undo priority completion
   const handleUndoPriority = useCallback(() => {
     sounds.playClick(0.9);
     updatePriority({ completed: false });
     setScreenMode('locked');
   }, [updatePriority, setScreenMode]);
 
-  // Keyboard shortcut listener: Space/Esc to maximize if minimized, Cmd+Enter, 's', 1/2, Cmd+Z
+  // Global Keyboard listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isInput =
         document.activeElement?.tagName === 'INPUT' ||
         document.activeElement?.tagName === 'TEXTAREA';
 
-      // If minimized, Space or Esc restores window
       if (isMinimized) {
         if (e.key === ' ' || e.key === 'Escape' || e.key === 'Enter') {
           e.preventDefault();
@@ -399,7 +352,7 @@ export default function App() {
         return;
       }
 
-      // Cmd+M or Ctrl+M minimizes/restores window (macOS standard)
+      // Cmd+M minimizes/restores window
       if ((e.metaKey || e.ctrlKey) && (e.key === 'm' || e.key === 'M')) {
         e.preventDefault();
         if (isMinimized) {
@@ -410,9 +363,9 @@ export default function App() {
         return;
       }
 
-      // Cmd+Z or Ctrl+Z to undo when on day won screen
+      // Cmd+Z to undo when on day won screen
       if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
-        if (currentContextData.screenMode === 'day_won') {
+        if (state.screenMode === 'day_won') {
           e.preventDefault();
           handleUndoPriority();
           return;
@@ -422,32 +375,21 @@ export default function App() {
       // Cmd+Enter or Ctrl+Enter
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (currentContextData.screenMode === 'setup') {
+        if (state.screenMode === 'setup') {
           sounds.playCommit();
           setScreenMode('locked');
-        } else if (currentContextData.screenMode === 'locked') {
+        } else if (state.screenMode === 'locked') {
           handleMinimizeWindow();
-        } else if (currentContextData.screenMode === 'day_won') {
+        } else if (state.screenMode === 'day_won') {
           handleMinimizeWindow();
         }
       }
 
-      // 's' opens/closes shelf when not typing
+      // 's' opens/closes shelf when not actively typing in an input
       if (!isInput && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
         sounds.playClick(1.0);
         toggleShelf();
-      }
-
-      // Quick numbers 1, 2 when not typing to navigate setup/locked
-      if (!isInput && !e.metaKey && !e.ctrlKey) {
-        if (e.key === '1') {
-          sounds.playClick(1.0);
-          setScreenMode('setup');
-        } else if (e.key === '2') {
-          sounds.playClick(1.0);
-          setScreenMode('locked');
-        }
       }
     };
 
@@ -455,24 +397,17 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     isMinimized,
-    currentContextData,
+    state.screenMode,
     setScreenMode,
     toggleShelf,
-    updateSecondaryTask,
     handleUndoPriority,
     handleMaximizeWindow,
     handleMinimizeWindow,
   ]);
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-[#10141a] text-[#dfe2eb] relative overflow-hidden select-none">
-      {/* Background subtle radial ambient glow for depth */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[450px] bg-[#0a84ff]/[0.025] rounded-full blur-[140px] pointer-events-none" />
-      {currentContextData.screenMode === 'day_won' && (
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[500px] bg-[#34d399]/[0.035] rounded-full blur-[160px] pointer-events-none transition-all duration-1000" />
-      )}
-
-      {/* Main Window: smoothly scales and animates down into the dock when minimized */}
+    <div className="w-screen h-screen flex flex-col bg-white text-neutral-900 relative overflow-hidden select-none font-sans">
+      {/* Main Window Viewport */}
       <div
         className={`w-full h-full flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom ${
           isMinimized
@@ -480,169 +415,70 @@ export default function App() {
             : 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
         }`}
       >
-        {/* Top Bar: macOS Traffic Lights (Minimize, Close, Maximize), Context, Date & Time, Actions */}
-        <header className="w-full max-w-5xl mx-auto px-6 pt-5 pb-2 flex items-center justify-between z-20 select-none">
-          {/* Left: macOS Traffic Lights, Window Title Tab & Live Date/Time */}
-          <div className="flex items-center gap-3 min-w-[240px]">
-            {/* macOS Window Traffic Lights: Yellow button minimizes to desktop dock! */}
-            <div className="flex items-center gap-2 group mr-1">
-              {/* Red: New Day / Close */}
-              <button
-                type="button"
-                onClick={handleResetToStartingScreen}
-                className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff4238] border border-[#e0443e]/50 flex items-center justify-center text-[8px] text-[#700] opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-sm group/btn"
-                title="New Day (Reset)"
-              >
-                <span className="opacity-0 group-hover/btn:opacity-100 font-bold leading-none">×</span>
-              </button>
-
-              {/* Yellow: Minimize Window to Dock */}
-              <button
-                type="button"
-                onClick={handleMinimizeWindow}
-                className="w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffaa00] border border-[#dea123]/50 flex items-center justify-center text-[9px] text-[#805300] opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-sm group/btn"
-                title="Minimize Window to Dock (Cmd+M)"
-              >
-                <span className="opacity-0 group-hover/btn:opacity-100 font-bold leading-none -translate-y-[0.5px]">−</span>
-              </button>
-
-              {/* Green: Focus Mode */}
-              <button
-                type="button"
-                onClick={() => {
-                  sounds.playClick(1.2);
-                }}
-                className="w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#1ebd35] border border-[#1aab29]/50 flex items-center justify-center text-[7px] text-[#006010] opacity-90 hover:opacity-100 transition-all cursor-pointer shadow-sm group/btn"
-                title="Window Active"
-              >
-                <span className="opacity-0 group-hover/btn:opacity-100 font-bold leading-none">+</span>
-              </button>
-            </div>
-
-            {/* Window title tab */}
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.03] border border-white/[0.06] text-[11px] font-medium text-[#8b91a0]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0a84ff]" />
-              <span className="tracking-tight text-white font-medium">OneFocus</span>
-              <span className="text-[#64748b]">·</span>
-              <span className="capitalize text-[#8b91a0]">{state.activeContext}</span>
-            </div>
-
-            {/* Live Date & Time */}
-            <div className="flex items-center gap-2 text-xs text-[#8b91a0]">
-              <Calendar className="w-3.5 h-3.5 text-[#64748b]" />
-              <span className="tracking-tight text-[#8b91a0] font-medium hidden md:inline">
-                {currentTime.toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </span>
-              <span className="text-[#64748b]/40 hidden md:inline">·</span>
-              <span className="font-tabular text-[#dfe2eb] font-medium">
-                {currentTime.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })}
-              </span>
-            </div>
-          </div>
-
-          {/* Center: Work | Life Toggle */}
-          <div className="flex justify-center">
-            <WorkLifeToggle activeContext={state.activeContext} onChange={setContext} />
-          </div>
-
-          {/* Right: Settings and New Day Buttons */}
-          <div className="flex items-center justify-end gap-2 min-w-[200px]">
-            {/* Settings / Reminders Icon Button (User Request 2 & 3) */}
-            <button
-              type="button"
-              onClick={() => {
-                sounds.playClick(1.0);
-                setSettingsOpen(true);
-              }}
-              className="relative inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
-              title="Reminders & Desktop Push Notifications (Cmd+,)"
-            >
-              <Bell className="w-3.5 h-3.5" />
-              {state.reminders?.enabled && (
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#34d399] shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-              )}
-            </button>
-
-            {/* New Day Button */}
-            <button
-              type="button"
-              onClick={handleResetToStartingScreen}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.12] text-xs font-medium text-[#8b91a0] hover:text-[#dfe2eb] transition-all shadow-sm active:scale-95 cursor-pointer"
-              title="Start a new day with fresh inputs"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>New Day</span>
-            </button>
-          </div>
+        {/* Fixed Top Corner Anchors: "One Focus" (top-left) & Date/Time (top-right) */}
+        <header className="w-full flex items-center justify-between px-8 sm:px-12 pt-8 pb-4 z-20">
+          <span className="text-base sm:text-lg font-bold text-neutral-900 tracking-tight">
+            One Focus
+          </span>
+          <span className="text-sm sm:text-base font-medium text-neutral-500 tracking-tight font-tabular">
+            {formattedDateTime}
+          </span>
         </header>
 
-        {/* Main View Area (Renders Screen 1, 2, or 3 based on screenMode) */}
-        <main className="flex-1 flex flex-col overflow-hidden relative z-10 pb-4">
-          {currentContextData.screenMode === 'setup' && (
+        {/* Main Focus Area: Screen 1 (setup), Screen 2 (locked), or Screen 3 (day_won) */}
+        <main className="flex-1 flex flex-col overflow-hidden relative z-10">
+          {state.screenMode === 'setup' && (
             <SetupScreen
-              context={state.activeContext}
-              priority={currentContextData.priority}
-              secondaryTasks={currentContextData.secondaryTasks}
+              priority={state.priority}
+              secondaryTasks={state.secondaryTasks}
               onUpdatePriority={updatePriority}
               onUpdateSecondaryTask={updateSecondaryTask}
               onCommit={() => setScreenMode('locked')}
               onOpenShelf={openShelf}
-              onEmergencyUnlock={handleEmergencyUnlock}
-              onAddShelfItem={addShelfItem}
-              shelfCount={currentContextData.shelf.length}
+              onOpenSettings={() => setSettingsOpen(true)}
+              shelfCount={state.shelf.length}
             />
           )}
 
-          {currentContextData.screenMode === 'locked' && (
+          {state.screenMode === 'locked' && (
             <LockedScreen
-              priority={currentContextData.priority}
-              secondaryTasks={currentContextData.secondaryTasks}
-              onUpdatePriority={updatePriority}
-              onEditPriority={() => {
-                setScreenMode('setup');
-              }}
+              priority={state.priority}
               onCompletePriority={() => {
                 updatePriority({ completed: true });
                 setScreenMode('day_won');
               }}
+              onEditPriority={() => {
+                setScreenMode('setup');
+              }}
               onMinimizeWindow={handleMinimizeWindow}
               onOpenShelf={openShelf}
-              onEmergencyUnlock={handleEmergencyUnlock}
+              onOpenSettings={() => setSettingsOpen(true)}
             />
           )}
 
-          {currentContextData.screenMode === 'day_won' && (
+          {state.screenMode === 'day_won' && (
             <DayWonScreen
-              priority={currentContextData.priority}
-              secondaryTasks={currentContextData.secondaryTasks}
-              onOpenShelf={openShelf}
-              onEmergencyUnlock={handleEmergencyUnlock}
+              priority={state.priority}
+              secondaryTasks={state.secondaryTasks}
               onUndoComplete={handleUndoPriority}
               onMinimizeWindow={handleMinimizeWindow}
               onUpdateSecondaryTask={updateSecondaryTask}
+              onOpenShelf={openShelf}
+              onOpenSettings={() => setSettingsOpen(true)}
             />
           )}
         </main>
       </div>
 
-      {/* Minimized Focus Dock (User Request 1: Floating dock for web app usage) */}
+      {/* Minimized Focus Dock (macOS desktop dock when minimized) */}
       {isMinimized && (
         <MinimizedDock
-          priority={currentContextData.priority}
-          screenMode={currentContextData.screenMode}
-          contextName={state.activeContext}
+          priority={state.priority}
+          screenMode={state.screenMode}
           onMaximize={handleMaximizeWindow}
           onToggleComplete={() => {
             sounds.playDayWon();
-            const nextCompleted = !currentContextData.priority.completed;
+            const nextCompleted = !state.priority.completed;
             updatePriority({ completed: nextCompleted });
             if (nextCompleted) {
               setScreenMode('day_won');
@@ -655,22 +491,25 @@ export default function App() {
         />
       )}
 
-      {/* Shelf Modal (Screen 4: pure typographic slate overlay) */}
+      {/* Shelf Drawer Overlay (Matches screenshot 1) */}
       <ShelfModal
         isOpen={state.shelfOpen}
         onClose={closeShelf}
-        items={currentContextData.shelf}
+        items={state.shelf}
         onAddItem={addShelfItem}
         onToggleItem={toggleShelfItem}
         onDeleteItem={deleteShelfItem}
+        formattedDateTime={formattedDateTime}
       />
 
-      {/* Settings Modal (User Requests 2 & 3: Custom reminder times & desktop push notifications) */}
+      {/* Settings Modal (Includes New Day, Emergency Unlock, Reminders, Push Alerts, Brave Support) */}
       <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         settings={state.reminders}
         onUpdateSettings={updateReminderSettings}
+        onNewDay={handleResetToStartingScreen}
+        onEmergencyUnlock={handleEmergencyUnlock}
         onTriggerTestNotification={() => {
           setActiveToast({
             id: `test-${Date.now()}`,
@@ -681,7 +520,7 @@ export default function App() {
         }}
       />
 
-      {/* Floating macOS Sequoia Notification Toast */}
+      {/* Floating macOS Notification Toast */}
       <NotificationToast
         notification={activeToast}
         onDismiss={() => setActiveToast(null)}

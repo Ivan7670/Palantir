@@ -1,0 +1,6 @@
+{
+  "summary":  "Comprehensive design and architectural implementation plan for the major UI overhaul of OneFocus:\n- Minimalist huge bold text design inspired by user mockups (clean white canvas, bold black geometric typography, zero visual clutter).\n- Removal of top navigation bar and Work/Life context switcher, consolidating into a pure single focus stream.\n- Progressive disclosure: live word count feedback ('Minimum 6 words | Current #'), duration picker appearing only after typing, and optional secondary tasks revealed only after the priority is set.\n- Bottom navigation with settings gear on the left, caret shelf toggle in the center, and action button on the right.\n- Shelf slide-up drawer with radio item completion and duration tags.\n- Direct inline editing with instant return to the setup screen.\n- Locked mode focusing purely on the big priority, with completion unlocking the Day Won screen to reveal optional secondary tasks.\n- Settings modal housing New Day, Emergency Unlock, Brave-compatible desktop push reminders, and sound controls.",
+  "updatedAt":  "2026-10-22T15:09:47.196405027Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

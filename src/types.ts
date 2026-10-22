@@ -1,7 +1,5 @@
 export type ScreenMode = 'setup' | 'locked' | 'day_won';
 
-export type WorkLifeContext = 'work' | 'life';
-
 export interface PriorityTask {
   id: string;
   title: string;
@@ -34,17 +32,11 @@ export interface ReminderSettings {
   intervalMinutes: number; // 30, 45, 60, etc.
 }
 
-export interface ContextState {
+export interface AppState {
   priority: PriorityTask;
   secondaryTasks: SecondaryTask[];
   shelf: ShelfItem[];
   screenMode: ScreenMode;
-}
-
-export interface AppState {
-  activeContext: WorkLifeContext;
-  work: ContextState;
-  life: ContextState;
   shelfOpen: boolean;
   soundEnabled: boolean;
   reminders: ReminderSettings;
