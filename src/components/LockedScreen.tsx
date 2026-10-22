@@ -39,45 +39,64 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
-      {/* Central Big Focus Display: Left aligned in middle with generous length */}
+    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-[90rem] mx-auto select-none">
+      {/* Central Big Focus Display: Left aligned in middle with generous length and safety padding */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full max-w-6xl flex flex-col items-start text-left">
-          {/* Complete Checkbox Affordance + Giant Editable Priority Title */}
-          <div className="w-full flex flex-col items-start gap-6">
+        <div className="w-full max-w-7xl flex flex-col items-start text-left group/main">
+          {/* Main priority container: circle takes 0 space by default, expands to push text when hovered; clicking big text completes */}
+          <div
+            onClick={handleToggleComplete}
+            className="flex items-start w-full cursor-pointer select-none"
+            title="Click to mark priority as complete"
+          >
+            {/* Circle Checkbox on the left: 0 space when not hovered, smoothly pushes text to fit when hovered */}
+            <div className="w-0 opacity-0 group-hover/main:w-10 sm:group-hover/main:w-13 md:group-hover/main:w-15 group-hover/main:mr-4 sm:group-hover/main:mr-6 group-hover/main:opacity-100 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden shrink-0 flex items-start">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleComplete();
+                }}
+                className="mt-3 sm:mt-5 md:mt-7 w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full border-2 border-neutral-300 hover:border-emerald-500 hover:bg-emerald-50 flex items-center justify-center text-neutral-400 hover:text-emerald-600 transition-all cursor-pointer shrink-0 shadow-xs"
+                title="Click to mark priority as complete"
+              >
+                <svg
+                  className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Giant Title: Flush left identical to original screen when not hovered, pushed when hovered, anti-clipping line-height */}
+            <h1
+              style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
+              className="flex-1 text-7xl sm:text-8xl md:text-9xl lg:text-[140px] xl:text-[170px] font-cal font-bold tracking-tight text-neutral-900 leading-[1.18] sm:leading-[1.14] pt-2 pb-6 px-1 text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-85"
+            >
+              {priority.title || 'One crucial priority'}
+            </h1>
+          </div>
+
+          {/* Duration & Separate Edit Button (Edit only appears on hover) */}
+          <div className="flex items-center gap-2.5 text-base sm:text-lg font-bold text-neutral-400 mt-2 pl-0">
+            <span>{formatDuration(priority.durationMinutes)}</span>
+            <span className="opacity-0 group-hover/main:opacity-100 transition-opacity duration-200 text-neutral-300">
+              ·
+            </span>
             <button
               type="button"
-              onClick={handleToggleComplete}
-              className="w-12 h-12 rounded-full border-2 border-neutral-300 hover:border-emerald-500 hover:bg-emerald-50 flex items-center justify-center text-neutral-400 hover:text-emerald-600 transition-all cursor-pointer group/circle shadow-sm"
-              title="Click to mark priority as complete"
-            >
-              <svg
-                className="w-6 h-6 opacity-0 group-hover/circle:opacity-100 transition-opacity stroke-[2.5]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </button>
-
-            {/* Giant Title (Longer box, 3x larger, bolded Cal Sans, anti-clipping leading & padding): Clicking text returns directly to setup screen */}
-            <h1
               onClick={() => {
                 sounds.playClick(1.0);
                 onEditPriority();
               }}
-              style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-              className="w-full text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-cal font-bold tracking-tight text-neutral-900 leading-[1.12] sm:leading-[1.08] pb-3 text-left cursor-pointer hover:opacity-75 transition-opacity"
-              title="Click to edit priority"
+              className="opacity-0 group-hover/main:opacity-100 transition-opacity duration-200 text-xs sm:text-sm font-semibold text-neutral-400 hover:text-neutral-900 underline underline-offset-4 cursor-pointer"
+              title="Edit priority"
             >
-              {priority.title || 'One crucial priority'}
-            </h1>
-
-            {/* Duration Display (Left aligned) */}
-            <div className="text-base sm:text-lg font-bold text-neutral-400 text-left">
-              {formatDuration(priority.durationMinutes)}
-            </div>
+              Edit
+            </button>
           </div>
         </div>
       </div>

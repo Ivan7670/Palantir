@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PriorityTask, SecondaryTask } from '../types.ts';
 import { sounds } from '../utils/audio.ts';
 import { CustomDurationModal } from './CustomDurationModal.tsx';
@@ -8,6 +8,7 @@ interface SetupScreenProps {
   secondaryTasks: SecondaryTask[];
   onUpdatePriority: (updates: Partial<PriorityTask>) => void;
   onUpdateSecondaryTask: (id: string, updates: Partial<SecondaryTask>) => void;
+  onAddToShelf: (item: { title: string; durationMinutes: number }) => void;
   onCommit: () => void;
   onOpenShelf: () => void;
   onOpenSettings: () => void;
@@ -19,6 +20,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   secondaryTasks,
   onUpdatePriority,
   onUpdateSecondaryTask,
+  onAddToShelf,
   onCommit,
   onOpenShelf,
   onOpenSettings,
@@ -26,21 +28,47 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   const [customModalOpen, setCustomModalOpen] = useState(false);
   const [customTarget, setCustomTarget] = useState<'priority' | string>('priority');
   const [validationAttempted, setValidationAttempted] = useState(false);
+  const [shelfFeedback, setShelfFeedback] = useState<string | null>(null);
+  const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Autofocus priority textarea on mount
   useEffect(() => {
     textareaRef.current?.focus();
+    return () => {
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    };
+  }, []);
+
+  const showShelfToast = (msg: string) => {
+    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    setShelfFeedback(msg);
+    feedbackTimeoutRef.current = setTimeout(() => {
+      setShelfFeedback(null);
+    }, 3200);
+  };
+
+  const resizeTextarea = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = '0px';
+    const scrollH = el.scrollHeight;
+    el.style.height = `${Math.max(scrollH + 52, 220)}px`;
   }, []);
 
   // Auto-resize textarea to fit content seamlessly without clipping
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const scrollH = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${Math.max(180, scrollH + 24)}px`;
+    resizeTextarea();
+  }, [priority.title, resizeTextarea]);
+
+  // Recalculate on window resize & font load to guarantee perfect fit
+  useEffect(() => {
+    window.addEventListener('resize', resizeTextarea);
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(resizeTextarea);
     }
-  }, [priority.title]);
+    return () => window.removeEventListener('resize', resizeTextarea);
+  }, [resizeTextarea]);
 
   const countWords = (text: string) => {
     const trimmed = text.trim();
@@ -61,8 +89,33 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   ];
 
   const handleDurationSelect = (mins: number) => {
+    // If a task is selected at 15m, 10m, or 5m it immediately goes into the shelf
+    if (mins <= 15 && priority.title.trim().length > 0) {
+      const taskTitle = priority.title.trim();
+      sounds.playShelfAdd();
+      onAddToShelf({ title: taskTitle, durationMinutes: mins });
+      onUpdatePriority({ title: '', durationMinutes: 60 });
+      showShelfToast(`Moved "${taskTitle.length > 30 ? taskTitle.slice(0, 30) + '…' : taskTitle}" to shelf (${mins}m)`);
+      return;
+    }
     sounds.playClick(1.0);
     onUpdatePriority({ durationMinutes: mins });
+  };
+
+  const handleSecondaryDurationSelect = (task: SecondaryTask, mins: number) => {
+    // If a task is selected at 15m, 10m, or 5m it immediately goes into the shelf
+    if (mins <= 15) {
+      if (task.title.trim().length > 0) {
+        const taskTitle = task.title.trim();
+        sounds.playShelfAdd();
+        onAddToShelf({ title: taskTitle, durationMinutes: mins });
+        onUpdateSecondaryTask(task.id, { title: '', durationMinutes: 0 });
+        showShelfToast(`Moved "${taskTitle.length > 30 ? taskTitle.slice(0, 30) + '…' : taskTitle}" to shelf (${mins}m)`);
+        return;
+      }
+    }
+    sounds.playClick(1.0);
+    onUpdateSecondaryTask(task.id, { durationMinutes: mins });
   };
 
   const handleCommit = () => {
@@ -79,14 +132,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   const currentCustomMinutes =
     customTarget === 'priority'
       ? priority.durationMinutes
-      : secondaryTasks.find((t) => t.id === customTarget)?.durationMinutes || 15;
+      : secondaryTasks.find((t) => t.id === customTarget)?.durationMinutes || 30;
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
-      {/* Central Interactive Focus Area: Left aligned in middle with generous width */}
+    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-[90rem] mx-auto select-none">
+      {/* Central Interactive Focus Area: Left aligned in middle with expanded width and safety padding */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full max-w-6xl flex flex-col items-start text-left">
-          {/* Giant Editable Priority Title (Longer box, 3x larger, bolded Cal Sans, anti-clipping line-height) */}
+        <div className="w-full max-w-7xl flex flex-col items-start text-left">
+          {/* Giant Editable Priority Title (Expands to fit, bolded Cal Sans, anti-clipping line-height) */}
           <textarea
             ref={textareaRef}
             rows={2}
@@ -94,6 +147,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             onChange={(e) => {
               onUpdatePriority({ title: e.target.value });
               if (validationAttempted) setValidationAttempted(false);
+              // Instant auto-expansion on keystroke
+              e.target.style.height = '0px';
+              e.target.style.height = `${Math.max(e.target.scrollHeight + 52, 220)}px`;
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -103,7 +159,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             }}
             placeholder="One thing to satisfy your day."
             style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-            className="w-full bg-transparent font-cal font-bold text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.12] sm:leading-[1.08] border-none focus:ring-0 p-0 pt-1 pb-4 overflow-hidden block"
+            className="w-full bg-transparent font-cal font-bold text-7xl sm:text-8xl md:text-9xl lg:text-[140px] xl:text-[170px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.18] sm:leading-[1.14] border-none focus:ring-0 p-0 pt-2 pb-6 px-1 overflow-hidden block"
           />
 
           {/* Live Word Count Validation Feedback with consistent dot on both */}
@@ -173,13 +229,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
           {/* Optional Tasks 2 & 3 (Only appear after user types the big task) */}
           {hasTyped && (
-            <div className="w-full max-w-xl mt-12 flex flex-col gap-3 animate-in fade-in duration-300 text-left">
+            <div className="w-full max-w-2xl mt-12 flex flex-col gap-3.5 animate-in fade-in duration-300 text-left">
               {secondaryTasks.map((task, idx) => {
                 const taskNum = idx + 2;
                 return (
                   <div
                     key={task.id}
-                    className="flex items-center gap-3 py-1 group/sec transition-colors"
+                    className="flex items-center gap-3 py-1.5 group/sec transition-colors relative min-h-[36px]"
                   >
                     <span className="text-base sm:text-lg font-bold text-neutral-400 shrink-0 w-6">
                       {taskNum}.
@@ -193,7 +249,37 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                       className="flex-1 bg-transparent text-base sm:text-lg font-medium text-neutral-800 placeholder-neutral-300 outline-none border-none focus:ring-0 p-0"
                     />
 
-                    {task.title.trim().length > 0 && (
+                    {/* Shows the time after selecting, does not start with one */}
+                    {task.durationMinutes !== undefined && task.durationMinutes > 0 && (
+                      <span className="text-xs sm:text-sm font-semibold text-neutral-400 font-tabular shrink-0 group-hover/sec:hidden">
+                        {task.durationMinutes >= 60 ? '1hr' : `${task.durationMinutes}m`}
+                      </span>
+                    )}
+
+                    {/* Available times appear on hover */}
+                    <div className="hidden group-hover/sec:flex items-center gap-1.5 transition-opacity duration-150 shrink-0 select-none">
+                      {[5, 10, 15, 30, 60].map((mins) => {
+                        const label = mins === 60 ? '1hr' : `${mins}m`;
+                        const isSelected = task.durationMinutes === mins;
+                        const isShelfMins = mins <= 15;
+                        return (
+                          <button
+                            key={mins}
+                            type="button"
+                            onClick={() => handleSecondaryDurationSelect(task, mins)}
+                            className={`text-xs px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                              isSelected
+                                ? 'font-bold text-neutral-900 underline underline-offset-4'
+                                : 'font-normal text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100'
+                            }`}
+                            title={isShelfMins ? `${label} → Move to shelf` : `Set duration to ${label}`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+
+                      {/* Custom + */}
                       <button
                         type="button"
                         onClick={() => {
@@ -201,12 +287,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                           setCustomTarget(task.id);
                           setCustomModalOpen(true);
                         }}
-                        className="text-xs font-semibold text-neutral-400 hover:text-neutral-800 transition-colors shrink-0"
-                        title="Change duration"
+                        className={`text-xs font-semibold px-1.5 py-0.5 hover:bg-neutral-100 rounded transition-colors cursor-pointer ${
+                          task.durationMinutes && ![5, 10, 15, 30, 60].includes(task.durationMinutes)
+                            ? 'font-bold text-neutral-900 underline underline-offset-4'
+                            : 'text-neutral-400 hover:text-neutral-900'
+                        }`}
+                        title="Custom duration"
                       >
-                        {task.durationMinutes}m
+                        {task.durationMinutes && ![5, 10, 15, 30, 60].includes(task.durationMinutes)
+                          ? `${task.durationMinutes}m`
+                          : '+'}
                       </button>
-                    )}
+                    </div>
                   </div>
                 );
               })}
@@ -214,6 +306,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           )}
         </div>
       </div>
+
+      {/* Floating feedback notification when task moves to the shelf */}
+      {shelfFeedback && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-neutral-900 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+          <span>{shelfFeedback}</span>
+        </div>
+      )}
 
       {/* Bottom Bar: Settings Gear (Left), Caret Shelf Toggle (Center), Commit Button (Right) */}
       <footer className="w-full flex items-center justify-between pb-8 pt-4 z-20">
@@ -284,9 +384,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         onClose={() => setCustomModalOpen(false)}
         onConfirm={(mins) => {
           if (customTarget === 'priority') {
-            onUpdatePriority({ durationMinutes: mins });
+            if (mins <= 15 && priority.title.trim().length > 0) {
+              const taskTitle = priority.title.trim();
+              sounds.playShelfAdd();
+              onAddToShelf({ title: taskTitle, durationMinutes: mins });
+              onUpdatePriority({ title: '', durationMinutes: 60 });
+              showShelfToast(`Moved "${taskTitle.length > 30 ? taskTitle.slice(0, 30) + '…' : taskTitle}" to shelf (${mins}m)`);
+            } else {
+              onUpdatePriority({ durationMinutes: mins });
+            }
           } else {
-            onUpdateSecondaryTask(customTarget, { durationMinutes: mins });
+            const task = secondaryTasks.find((t) => t.id === customTarget);
+            if (task) {
+              handleSecondaryDurationSelect(task, mins);
+            }
           }
         }}
       />

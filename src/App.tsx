@@ -415,12 +415,12 @@ export default function App() {
             : 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
         }`}
       >
-        {/* Fixed Top Corner Anchors: "One Focus" (top-left) & Date/Time (top-right) */}
-        <header className="w-full flex items-center justify-between px-8 sm:px-12 pt-8 pb-4 z-20">
-          <span className="text-base sm:text-lg font-bold text-neutral-900 tracking-tight">
+        {/* Fixed Top Anchors: "One Focus" (top-left) & Date/Time (top-right) pushed down to match initial images */}
+        <header className="w-full flex items-center justify-between px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto pt-14 sm:pt-20 md:pt-24 pb-4 z-20 shrink-0">
+          <span className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
             One Focus
           </span>
-          <span className="text-sm sm:text-base font-medium text-neutral-500 tracking-tight font-tabular">
+          <span className="text-base sm:text-lg font-medium text-neutral-400 tracking-tight font-tabular">
             {formattedDateTime}
           </span>
         </header>
@@ -433,6 +433,7 @@ export default function App() {
               secondaryTasks={state.secondaryTasks}
               onUpdatePriority={updatePriority}
               onUpdateSecondaryTask={updateSecondaryTask}
+              onAddToShelf={addShelfItem}
               onCommit={() => setScreenMode('locked')}
               onOpenShelf={openShelf}
               onOpenSettings={() => setSettingsOpen(true)}

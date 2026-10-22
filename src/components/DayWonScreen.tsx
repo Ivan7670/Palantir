@@ -45,45 +45,48 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
   );
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
-      {/* Central Completed Focus & Revealed Optional Tasks: Left aligned in middle with generous length */}
+    <div className="w-full flex-1 flex flex-col justify-between items-center px-6 sm:px-12 lg:px-16 max-w-[90rem] mx-auto select-none">
+      {/* Central Completed Focus & Revealed Optional Tasks: Left aligned in middle with generous length and safety padding */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full max-w-6xl flex flex-col items-start text-left">
-          {/* Completed Checkmark Circle: Clicking undoes completion */}
-          <button
-            type="button"
-            onClick={() => {
-              sounds.playClick(0.9);
-              onUndoComplete();
-            }}
-            className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md hover:bg-emerald-600 transition-all cursor-pointer mb-6"
+        <div className="w-full max-w-7xl flex flex-col items-start text-left">
+          {/* Main completed priority container: circle on the left, clicking big text toggles undo */}
+          <div
+            onClick={onUndoComplete}
+            className="flex items-start gap-4 sm:gap-6 w-full cursor-pointer select-none group/won"
             title="Click to undo completion"
           >
-            <svg
-              className="w-6 h-6 stroke-[2.5]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+            {/* Completed Checkmark Circle on the left */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                sounds.playClick(0.9);
+                onUndoComplete();
+              }}
+              className="mt-3 sm:mt-5 md:mt-7 w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md hover:bg-emerald-600 transition-all cursor-pointer shrink-0"
+              title="Click to undo completion"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </button>
+              <svg
+                className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
 
-          {/* Strikethrough Completed Title (Longer box, 3x larger, bolded Cal Sans, anti-clipping) */}
-          <h1
-            onClick={() => {
-              sounds.playClick(0.9);
-              onUndoComplete();
-            }}
-            style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-            className="w-full text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-cal font-bold tracking-tight text-neutral-400 line-through leading-[1.12] sm:leading-[1.08] pb-3 text-left cursor-pointer hover:text-neutral-500 transition-colors"
-            title="Click to undo completion"
-          >
-            {priority.title || 'One crucial priority'}
-          </h1>
+            {/* Strikethrough Completed Title: anti-clipping line-height */}
+            <h1
+              style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
+              className="flex-1 text-7xl sm:text-8xl md:text-9xl lg:text-[140px] xl:text-[170px] font-cal font-bold tracking-tight text-neutral-400 line-through leading-[1.18] sm:leading-[1.14] pt-2 pb-6 px-1 text-left transition-colors hover:text-neutral-500"
+            >
+              {priority.title || 'One crucial priority'}
+            </h1>
+          </div>
 
-          {/* Duration Display (Left aligned) */}
-          <div className="text-base sm:text-lg font-bold text-neutral-400 mt-4 text-left">
+          {/* Duration Display */}
+          <div className="text-base sm:text-lg font-bold text-neutral-400 mt-2 text-left pl-0 sm:pl-1">
             {formatDuration(priority.durationMinutes)}
           </div>
 
@@ -131,9 +134,11 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
                       {task.title}
                     </span>
 
-                    <span className="text-xs font-semibold text-neutral-400 shrink-0 font-tabular">
-                      {task.durationMinutes}m
-                    </span>
+                    {Boolean(task.durationMinutes && task.durationMinutes > 0) && (
+                      <span className="text-xs font-semibold text-neutral-400 shrink-0 font-tabular">
+                        {task.durationMinutes}m
+                      </span>
+                    )}
                   </div>
                 );
               })}

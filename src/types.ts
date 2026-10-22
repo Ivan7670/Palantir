@@ -11,7 +11,7 @@ export interface PriorityTask {
 export interface SecondaryTask {
   id: string;
   title: string;
-  durationMinutes: number;
+  durationMinutes?: number;
   completed: boolean;
   optional: boolean;
 }

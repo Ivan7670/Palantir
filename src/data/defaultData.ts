@@ -25,14 +25,14 @@ export const INITIAL_STATE: AppState = {
     {
       id: 'secondary-2',
       title: '',
-      durationMinutes: 30,
+      durationMinutes: 0,
       completed: false,
       optional: true,
     },
     {
       id: 'secondary-3',
       title: '',
-      durationMinutes: 15,
+      durationMinutes: 0,
       completed: false,
       optional: true,
     },
