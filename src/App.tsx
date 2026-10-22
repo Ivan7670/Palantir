@@ -416,7 +416,7 @@ export default function App() {
         }`}
       >
         {/* Fixed Top Anchors: "One Focus" (top-left) & Date/Time (top-right) pushed down to match initial images */}
-        <header className="w-full flex items-center justify-between px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto pt-14 sm:pt-20 md:pt-24 pb-4 z-20 shrink-0">
+        <header className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto pt-14 sm:pt-20 md:pt-24 pb-4 z-20 shrink-0">
           <span className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
             One Focus
           </span>

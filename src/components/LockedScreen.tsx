@@ -54,7 +54,7 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-start px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
+    <div className="w-full flex-1 flex flex-col justify-between items-start px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto select-none">
       {/* Central Big Focus Display: Left aligned directly with top One Focus header */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
         <div className="w-full flex flex-col items-start text-left group/main">
@@ -72,7 +72,7 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
                   e.stopPropagation();
                   handleToggleComplete();
                 }}
-                className="mt-3 sm:mt-5 md:mt-7 w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full border-2 border-neutral-300 hover:border-emerald-500 hover:bg-emerald-50 flex items-center justify-center text-neutral-400 hover:text-emerald-600 transition-all cursor-pointer shrink-0 shadow-xs"
+                className="mt-3 sm:mt-5 md:mt-7 w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full border-2 border-neutral-300 group-hover/main:border-emerald-500 group-hover/main:bg-emerald-50 group-hover/main:text-emerald-600 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 flex items-center justify-center text-neutral-400 transition-all cursor-pointer shrink-0 shadow-xs"
                 title="Click to mark priority as complete"
               >
                 <svg

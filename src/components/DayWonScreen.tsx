@@ -49,7 +49,7 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
   );
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-start px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto select-none">
+    <div className="w-full flex-1 flex flex-col justify-between items-start px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto select-none">
       {/* Central Completed Focus & Revealed Optional Tasks: Left aligned directly with top One Focus header */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
         <div className="w-full flex flex-col items-start text-left">
@@ -209,7 +209,7 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
           className="text-base sm:text-lg font-bold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1 cursor-pointer"
           title="Day complete - close tab"
         >
-          <span>Good work</span>
+          <span>Day Complete</span>
           <span className="text-xl">→</span>
         </button>
       </footer>

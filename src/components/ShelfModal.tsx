@@ -60,7 +60,7 @@ export const ShelfModal: React.FC<ShelfModalProps> = ({
   return (
     <div className="fixed inset-0 z-40 bg-white flex flex-col justify-between select-none animate-in fade-in duration-200">
       {/* Top Bar matching initial mockup: "Shelf" on left, date & time on right pushed down */}
-      <header className="w-full flex items-center justify-between px-6 sm:px-12 lg:px-16 max-w-7xl mx-auto pt-14 sm:pt-20 md:pt-24 pb-4 z-20 shrink-0">
+      <header className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto pt-14 sm:pt-20 md:pt-24 pb-4 z-20 shrink-0">
         <span className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
           Shelf
         </span>
@@ -193,7 +193,7 @@ export const ShelfModal: React.FC<ShelfModalProps> = ({
       </main>
 
       {/* Bottom Bar: Caret to close (Center), "One Focus →" to return (Right) */}
-      <footer className="w-full flex items-center justify-between px-8 sm:px-12 pb-8 pt-4 z-20">
+      <footer className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto pb-8 pt-4 z-20">
         <div className="w-10" />
 
         {/* Bottom Center: Caret Down to close */}
