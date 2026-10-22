@@ -16,7 +16,7 @@ import {
   RotateCcw,
   Unlock,
 } from 'lucide-react';
-import { ReminderSettings } from '../types.ts';
+import { ReminderSettings, PriorityTask } from '../types.ts';
 import { sounds } from '../utils/audio.ts';
 import {
   formatTimeString,
@@ -33,6 +33,7 @@ interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   settings: ReminderSettings;
+  priority?: PriorityTask;
   onUpdateSettings: (updates: Partial<ReminderSettings>) => void;
   onTriggerTestNotification?: () => void;
   onNewDay: () => void;
@@ -43,6 +44,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   settings,
+  priority,
   onUpdateSettings,
   onTriggerTestNotification,
   onNewDay,
@@ -105,7 +107,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       onTriggerTestNotification();
     }
 
-    const res = await sendTestPushNotification();
+    const res = await sendTestPushNotification(priority);
     setTestStatus({
       sent: res.success,
       method: res.method,

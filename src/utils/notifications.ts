@@ -304,18 +304,19 @@ export const sendDesktopPush = async (
 // Send priority reminder desktop notification
 export const sendPriorityReminderNotification = async (
   priority: PriorityTask,
-  contextName: string,
+  contextName?: string,
   onNotificationClick?: () => void
 ): Promise<NotificationResult> => {
   const hasTitle = priority.title && priority.title.trim().length > 0;
+  const taskTitle = hasTitle ? priority.title.trim() : 'One crucial priority';
   const title = priority.completed
-    ? `OneFocus · Priority Done! (${contextName.toUpperCase()})`
-    : `OneFocus · Priority Reminder (${contextName.toUpperCase()})`;
+    ? `Completed: ${taskTitle}`
+    : taskTitle;
 
   const body = priority.completed
-    ? `Great job! You've completed "${priority.title || 'your main priority'}". The day is won.`
+    ? `Great job! You've completed your one priority today. The day is won.`
     : hasTitle
-    ? `Current Focus: "${priority.title}" (${priority.durationMinutes}m planned). Stay locked in!`
+    ? `${priority.durationMinutes}m planned · Stay locked in!`
     : 'Reminder: Set your ONE crucial priority for today to win the day!';
 
   return sendDesktopPush(title, {
@@ -328,9 +329,16 @@ export const sendPriorityReminderNotification = async (
 };
 
 // Send immediate test notification
-export const sendTestPushNotification = async (): Promise<NotificationResult> => {
-  return sendDesktopPush('OneFocus · Desktop Notification Active', {
-    body: 'Your custom priority reminders are now successfully linked to your desktop and tab!',
+export const sendTestPushNotification = async (priority?: PriorityTask): Promise<NotificationResult> => {
+  const hasTitle = priority?.title && priority.title.trim().length > 0;
+  const taskTitle = hasTitle ? priority.title.trim() : 'One crucial priority';
+  const title = priority?.completed ? `Completed: ${taskTitle}` : taskTitle;
+  const body = hasTitle
+    ? `${priority.durationMinutes}m planned · Desktop notifications active.`
+    : 'Your custom priority reminders are now successfully linked to your desktop and tab!';
+
+  return sendDesktopPush(title, {
+    body,
     tag: 'onefocus-test',
     playSound: true,
     requireInteraction: true,

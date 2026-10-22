@@ -54,7 +54,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
               <span className="text-[10px] text-neutral-400">now</span>
             </div>
 
-            <h4 className="text-xs font-bold text-white leading-snug line-clamp-1">
+            <h4 className="text-xs font-bold text-white leading-snug line-clamp-2 break-words">
               {notification.title}
             </h4>
 

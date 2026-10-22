@@ -309,14 +309,15 @@ export default function App() {
   const triggerReminderNotification = useCallback(
     (priority: PriorityTask) => {
       const hasTitle = priority.title && priority.title.trim().length > 0;
+      const taskTitle = hasTitle ? priority.title.trim() : 'One crucial priority';
       const title = priority.completed
-        ? 'OneFocus · Priority Done!'
-        : 'OneFocus · Priority Reminder';
+        ? `Completed: ${taskTitle}`
+        : taskTitle;
 
       const body = priority.completed
-        ? `Great job! You've completed "${priority.title || 'your main priority'}". The day is won.`
+        ? `Great job! You've completed your one priority today. The day is won.`
         : hasTitle
-        ? `Current Focus: "${priority.title}" (${priority.durationMinutes}m planned). Stay locked in!`
+        ? `${priority.durationMinutes}m planned · Stay locked in!`
         : 'Reminder: Set your ONE crucial priority for today to win the day!';
 
       setActiveToast({
@@ -328,7 +329,7 @@ export default function App() {
       });
 
       if (isMinimized || (typeof document !== 'undefined' && (document.hidden || !document.hasFocus()))) {
-        startTabTitleAlert(hasTitle ? priority.title : 'Check in on priority');
+        startTabTitleAlert(taskTitle);
       }
 
       sendPriorityReminderNotification(priority, 'Focus', () => {
@@ -580,14 +581,22 @@ export default function App() {
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         settings={state.reminders}
+        priority={state.priority}
         onUpdateSettings={updateReminderSettings}
         onNewDay={handleResetToStartingScreen}
         onEmergencyUnlock={handleEmergencyUnlock}
         onTriggerTestNotification={() => {
+          const hasTitle = state.priority.title && state.priority.title.trim().length > 0;
+          const taskTitle = hasTitle ? state.priority.title.trim() : 'One crucial priority';
+          const title = state.priority.completed ? `Completed: ${taskTitle}` : taskTitle;
+          const body = hasTitle
+            ? `${state.priority.durationMinutes}m planned · Test alert active.`
+            : 'Your custom priority reminders are now linked to your desktop and on-screen alerts!';
+
           setActiveToast({
             id: `test-${Date.now()}`,
-            title: 'OneFocus · Desktop Notification Active',
-            body: 'Your custom priority reminders are now linked to your desktop and on-screen alerts!',
+            title,
+            body,
             type: 'test',
           });
         }}

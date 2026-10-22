@@ -53,7 +53,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     if (!el) return;
     el.style.height = '0px';
     const scrollH = el.scrollHeight;
-    el.style.height = `${Math.max(scrollH + 32, 160)}px`;
+    el.style.height = `${Math.max(scrollH + 4, 120)}px`;
   }, []);
 
   // Auto-resize textarea to fit content seamlessly without clipping
@@ -148,7 +148,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             if (validationAttempted) setValidationAttempted(false);
             // Instant auto-expansion on keystroke
             e.target.style.height = '0px';
-            e.target.style.height = `${Math.max(e.target.scrollHeight + 32, 160)}px`;
+            e.target.style.height = `${Math.max(e.target.scrollHeight + 4, 120)}px`;
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -161,23 +161,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           className="w-full bg-transparent font-cal font-bold text-6xl sm:text-7xl md:text-8xl lg:text-[128px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.18] sm:leading-[1.14] border-none focus:ring-0 p-0 overflow-hidden block"
         />
 
-        {/* Live Word Count Validation Feedback with 80px gap from main text */}
+        {/* Live Word Count Validation Feedback with ~32px (mt-8) gap from main text */}
         {hasTyped && !isSatisfied && (
-          <div className="mt-20 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
+          <div className="mt-8 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
             <span className="w-2 h-2 rounded-full bg-[#e05252] shrink-0" />
             <span>Minimum 6 words · Current {wordCount}</span>
           </div>
         )}
 
         {validationAttempted && !hasTyped && (
-          <div className="mt-20 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
+          <div className="mt-8 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
             <span className="w-2 h-2 rounded-full bg-[#e05252] shrink-0" />
             <span>Minimum 6 words · Current 0</span>
           </div>
         )}
 
         {hasTyped && isSatisfied && (
-          <div className="mt-20 flex items-center gap-2 text-xs font-medium tracking-wide text-neutral-400 animate-in fade-in duration-150 text-left">
+          <div className="mt-8 flex items-center gap-2 text-xs font-medium tracking-wide text-neutral-400 animate-in fade-in duration-150 text-left">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
             <span>Minimum 6 words satisfied · {wordCount} words</span>
           </div>
