@@ -69,13 +69,14 @@ export const DayWonScreen: React.FC<DayWonScreenProps> = ({
             </svg>
           </button>
 
-          {/* Strikethrough Completed Title (3x larger, left aligned) */}
+          {/* Strikethrough Completed Title (3x larger, left aligned, bolded Cal Sans) */}
           <h1
             onClick={() => {
               sounds.playClick(0.9);
               onUndoComplete();
             }}
-            className="w-full text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-black tracking-tight text-neutral-400 line-through leading-[1.02] sm:leading-[0.95] text-left cursor-pointer hover:text-neutral-500 transition-colors"
+            style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
+            className="w-full text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-cal font-bold tracking-tight text-neutral-400 line-through leading-[1.02] sm:leading-[0.95] text-left cursor-pointer hover:text-neutral-500 transition-colors"
             title="Click to undo completion"
           >
             {priority.title || 'One crucial priority'}

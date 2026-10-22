@@ -85,7 +85,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       {/* Central Interactive Focus Area: Left aligned in middle */}
       <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
         <div className="w-full max-w-4xl flex flex-col items-start text-left">
-          {/* Giant Editable Priority Title (3x larger, left aligned) */}
+          {/* Giant Editable Priority Title (3x larger, left aligned, bolded Cal Sans) */}
           <textarea
             ref={textareaRef}
             rows={2}
@@ -101,7 +101,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
               }
             }}
             placeholder="One thing to satisfy your day."
-            className="w-full bg-transparent text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-black tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.02] sm:leading-[0.95] border-none focus:ring-0 p-0"
+            style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
+            className="w-full bg-transparent font-cal font-bold text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.02] sm:leading-[0.95] border-none focus:ring-0 p-0"
           />
 
           {/* Live Word Count Validation Feedback with consistent dot on both */}

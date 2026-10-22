@@ -61,13 +61,14 @@ export const LockedScreen: React.FC<LockedScreenProps> = ({
               </svg>
             </button>
 
-            {/* Giant Title (3x larger, left aligned): Clicking text returns directly to setup screen */}
+            {/* Giant Title (3x larger, left aligned, bolded Cal Sans): Clicking text returns directly to setup screen */}
             <h1
               onClick={() => {
                 sounds.playClick(1.0);
                 onEditPriority();
               }}
-              className="w-full text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-black tracking-tight text-neutral-900 leading-[1.02] sm:leading-[0.95] text-left cursor-pointer hover:opacity-75 transition-opacity"
+              style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
+              className="w-full text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[116px] font-cal font-bold tracking-tight text-neutral-900 leading-[1.02] sm:leading-[0.95] text-left cursor-pointer hover:opacity-75 transition-opacity"
               title="Click to edit priority"
             >
               {priority.title || 'One crucial priority'}
