@@ -60,7 +60,7 @@ export default function App() {
   const timeStr = currentTime
     .toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     .replace(' ', '');
-  const formattedDateTime = `${month} ${day} - ${timeStr}`;
+  const formattedDateTime = `${month} ${day} · ${timeStr}`;
 
   // App state: first time someone enters, it's reset; on subsequent visits, saved state & cookies persist
   const [state, setState] = useState<AppState>(() => {

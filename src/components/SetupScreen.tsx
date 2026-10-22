@@ -86,6 +86,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     { label: '15m', minutes: 15 },
     { label: '30m', minutes: 30 },
     { label: '1hr', minutes: 60 },
+    { label: '2hr', minutes: 120 },    
   ];
 
   const handleDurationSelect = (mins: number) => {
