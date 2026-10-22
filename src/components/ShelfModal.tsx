@@ -192,42 +192,49 @@ export const ShelfModal: React.FC<ShelfModalProps> = ({
         </div>
       </main>
 
-      {/* Bottom Bar: Caret to close (Center), "One Focus →" to return (Right) */}
-      <footer className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto pb-8 pt-4 z-20">
-        <div className="w-10" />
+      {/* Floating Bottom Bar: Caret to close (Exact Screen Center), "One Focus →" (Right) */}
+      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-8 pt-4 pointer-events-none">
+        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-8 lg:px-10 relative flex items-center justify-between pointer-events-auto">
+          <div className="w-10" />
 
-        {/* Bottom Center: Caret Down to close */}
-        <button
-          type="button"
-          onClick={() => {
-            sounds.playClick(1.0);
-            onClose();
-          }}
-          className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-neutral-900 transition-colors cursor-pointer group"
-          title="Close Shelf ('s' or Esc)"
-        >
-          <svg
-            className="w-5 h-5 stroke-[2] transform transition-transform group-hover:translate-y-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+          {/* Exact Screen Center: Caret Down to close with Label */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                sounds.playClick(1.0);
+                onClose();
+              }}
+              className="flex flex-col items-center justify-center gap-0.5 text-neutral-400 hover:text-neutral-900 transition-colors cursor-pointer group px-3 py-1"
+              title="Close Shelf ('s' or Esc)"
+            >
+              <svg
+                className="w-4.5 h-4.5 stroke-[2] transform transition-transform group-hover:translate-y-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+              <span className="text-[11px] font-semibold tracking-wide text-neutral-400 group-hover:text-neutral-900">
+                Shelf
+              </span>
+            </button>
+          </div>
+
+          {/* Bottom Right: "One Focus →" */}
+          <button
+            type="button"
+            onClick={() => {
+              sounds.playClick(1.0);
+              onClose();
+            }}
+            className="text-base sm:text-lg font-bold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1 cursor-pointer"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Bottom Right: "One Focus →" */}
-        <button
-          type="button"
-          onClick={() => {
-            sounds.playClick(1.0);
-            onClose();
-          }}
-          className="text-base sm:text-lg font-bold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1 cursor-pointer"
-        >
-          <span>One Focus</span>
-          <span className="text-xl">→</span>
-        </button>
+            <span>One Focus</span>
+            <span className="text-xl">→</span>
+          </button>
+        </div>
       </footer>
     </div>
   );

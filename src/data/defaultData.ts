@@ -37,30 +37,5 @@ export const INITIAL_STATE: AppState = {
       optional: true,
     },
   ],
-  shelf: [
-    {
-      id: 'shelf-1',
-      title: 'Reply to Alex re: API migration review',
-      durationMinutes: 5,
-      completed: false,
-    },
-    {
-      id: 'shelf-2',
-      title: 'Submit expense receipts for October',
-      durationMinutes: 10,
-      completed: false,
-    },
-    {
-      id: 'shelf-3',
-      title: 'Schedule 1:1 sync',
-      durationMinutes: 10,
-      completed: false,
-    },
-    {
-      id: 'shelf-4',
-      title: 'Order replacement USB-C cable',
-      durationMinutes: 5,
-      completed: false,
-    },
-  ],
+  shelf: [],
 };

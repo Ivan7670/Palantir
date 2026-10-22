@@ -135,54 +135,53 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       : secondaryTasks.find((t) => t.id === customTarget)?.durationMinutes || 30;
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-between items-start px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto select-none">
-      {/* Central Interactive Focus Area: Left aligned directly with top One Focus header */}
-      <div className="w-full flex-1 flex flex-col items-start justify-center my-auto py-8">
-        <div className="w-full flex flex-col items-start text-left">
-          {/* Giant Editable Priority Title (Expands to fit, bolded Cal Sans, anti-clipping line-height) */}
-          <textarea
-            ref={textareaRef}
-            rows={2}
-            value={priority.title}
-            onChange={(e) => {
-              onUpdatePriority({ title: e.target.value });
-              if (validationAttempted) setValidationAttempted(false);
-              // Instant auto-expansion on keystroke
-              e.target.style.height = '0px';
-              e.target.style.height = `${Math.max(e.target.scrollHeight + 32, 160)}px`;
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleCommit();
-              }
-            }}
-            placeholder="One thing to satisfy your day."
-            style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
-            className="w-full bg-transparent font-cal font-bold text-6xl sm:text-7xl md:text-8xl lg:text-[128px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.18] sm:leading-[1.14] border-none focus:ring-0 p-0 pt-2 pb-6 px-1 overflow-hidden block"
-          />
+    <div className="w-full flex-1 flex flex-col justify-start items-start px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto select-none pt-16 pb-28">
+      {/* Central Interactive Focus Area: 64px below header */}
+      <div className="w-full flex flex-col items-start text-left">
+        {/* Giant Editable Priority Title (Expands to fit, bolded Cal Sans, anti-clipping line-height) */}
+        <textarea
+          ref={textareaRef}
+          rows={2}
+          value={priority.title}
+          onChange={(e) => {
+            onUpdatePriority({ title: e.target.value });
+            if (validationAttempted) setValidationAttempted(false);
+            // Instant auto-expansion on keystroke
+            e.target.style.height = '0px';
+            e.target.style.height = `${Math.max(e.target.scrollHeight + 32, 160)}px`;
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleCommit();
+            }
+          }}
+          placeholder="One thing to satisfy your day."
+          style={{ fontFamily: "'Cal Sans', var(--font-cal)" }}
+          className="w-full bg-transparent font-cal font-bold text-6xl sm:text-7xl md:text-8xl lg:text-[128px] tracking-tight text-neutral-900 placeholder-neutral-300 outline-none resize-none text-left leading-[1.18] sm:leading-[1.14] border-none focus:ring-0 p-0 overflow-hidden block"
+        />
 
-          {/* Live Word Count Validation Feedback with consistent dot on both */}
-          {hasTyped && !isSatisfied && (
-            <div className="mt-5 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
-              <span className="w-2 h-2 rounded-full bg-[#e05252] shrink-0" />
-              <span>Minimum 6 words · Current {wordCount}</span>
-            </div>
-          )}
+        {/* Live Word Count Validation Feedback with 64px gap from main text */}
+        {hasTyped && !isSatisfied && (
+          <div className="mt-16 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
+            <span className="w-2 h-2 rounded-full bg-[#e05252] shrink-0" />
+            <span>Minimum 6 words · Current {wordCount}</span>
+          </div>
+        )}
 
-          {validationAttempted && !hasTyped && (
-            <div className="mt-5 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
-              <span className="w-2 h-2 rounded-full bg-[#e05252] shrink-0" />
-              <span>Minimum 6 words · Current 0</span>
-            </div>
-          )}
+        {validationAttempted && !hasTyped && (
+          <div className="mt-16 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#e05252] animate-in fade-in duration-150 text-left">
+            <span className="w-2 h-2 rounded-full bg-[#e05252] shrink-0" />
+            <span>Minimum 6 words · Current 0</span>
+          </div>
+        )}
 
-          {hasTyped && isSatisfied && (
-            <div className="mt-5 flex items-center gap-2 text-xs font-medium tracking-wide text-neutral-400 animate-in fade-in duration-150 text-left">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span>Minimum 6 words satisfied · {wordCount} words</span>
-            </div>
-          )}
+        {hasTyped && isSatisfied && (
+          <div className="mt-16 flex items-center gap-2 text-xs font-medium tracking-wide text-neutral-400 animate-in fade-in duration-150 text-left">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span>Minimum 6 words satisfied · {wordCount} words</span>
+          </div>
+        )}
 
           {/* Duration Selector (Only appears after user types the big task, left aligned) */}
           {hasTyped && (
@@ -305,7 +304,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             </div>
           )}
         </div>
-      </div>
 
       {/* Floating feedback notification when task moves to the shelf */}
       {shelfFeedback && (
@@ -315,66 +313,73 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         </div>
       )}
 
-      {/* Bottom Bar: Settings Gear (Left), Caret Shelf Toggle (Center), Commit Button (Right) */}
-      <footer className="w-full flex items-center justify-between pb-8 pt-4 z-20">
-        {/* Bottom Left: Settings Gear */}
-        <button
-          type="button"
-          onClick={() => {
-            sounds.playClick(1.0);
-            onOpenSettings();
-          }}
-          className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-neutral-900 transition-colors cursor-pointer"
-          title="Settings (Cmd+,)"
-        >
-          <svg
-            className="w-5 h-5 stroke-[1.8]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+      {/* Floating Bottom Bar: Settings Gear (Left), Shelf (Exact Screen Center), Commit Button (Right) */}
+      <footer className="fixed bottom-0 left-0 right-0 z-30 pb-8 pt-4 pointer-events-none">
+        <div className="w-full max-w-[1580px] mx-auto px-6 sm:px-8 lg:px-10 relative flex items-center justify-between pointer-events-auto">
+          {/* Bottom Left: Settings Gear */}
+          <button
+            type="button"
+            onClick={() => {
+              sounds.playClick(1.0);
+              onOpenSettings();
+            }}
+            className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-neutral-900 transition-colors cursor-pointer"
+            title="Settings (Cmd+,)"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-        </button>
+            <svg
+              className="w-5 h-5 stroke-[1.8]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </button>
 
-        {/* Bottom Center: Shelf Caret Button */}
-        <button
-          type="button"
-          onClick={() => {
-            sounds.playClick(1.0);
-            onOpenShelf();
-          }}
-          className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-neutral-900 transition-colors cursor-pointer group"
-          title="Open Shelf ('s')"
-        >
-          <svg
-            className="w-5 h-5 stroke-[2] transform transition-transform group-hover:-translate-y-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+          {/* Exact Screen Center: Shelf Caret Button with Label */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                sounds.playClick(1.0);
+                onOpenShelf();
+              }}
+              className="flex flex-col items-center justify-center gap-0.5 text-neutral-400 hover:text-neutral-900 transition-colors cursor-pointer group px-3 py-1"
+              title="Open Shelf ('s')"
+            >
+              <svg
+                className="w-4.5 h-4.5 stroke-[2] transform transition-transform group-hover:-translate-y-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              </svg>
+              <span className="text-[11px] font-semibold tracking-wide text-neutral-400 group-hover:text-neutral-900">
+                Shelf
+              </span>
+            </button>
+          </div>
+
+          {/* Bottom Right: Commit Action */}
+          <button
+            type="button"
+            onClick={handleCommit}
+            className="text-base sm:text-lg font-bold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1 cursor-pointer"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-          </svg>
-        </button>
-
-        {/* Bottom Right: Commit Action */}
-        <button
-          type="button"
-          onClick={handleCommit}
-          className="text-base sm:text-lg font-bold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1 cursor-pointer"
-        >
-          <span>Commit</span>
-          <span className="text-xl">→</span>
-        </button>
+            <span>Commit</span>
+            <span className="text-xl">→</span>
+          </button>
+        </div>
       </footer>
 
       {/* Custom Duration Modal */}

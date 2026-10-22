@@ -27,9 +27,24 @@ import {
   startTabTitleAlert,
 } from './utils/notifications.ts';
 
-const STORAGE_KEY = 'onefocus_state_v2';
-const LEGACY_STORAGE_KEY_V1 = 'onefocus_state_v1';
-const LEGACY_STORAGE_KEY_ZENITH = 'zenith_focus_state_v3';
+const STORAGE_KEY = 'onefocus_state_v3';
+const HAS_VISITED_KEY = 'onefocus_has_visited';
+
+function getCookie(name: string): string | null {
+  try {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCookie(name: string, value: string, days = 365) {
+  try {
+    const maxAge = days * 24 * 60 * 60;
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  } catch {}
+}
 
 export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -47,31 +62,39 @@ export default function App() {
     .replace(' ', '');
   const formattedDateTime = `${month} ${day} - ${timeStr}`;
 
-  // App state with smooth backward compatibility migration
+  // App state: first time someone enters, it's reset; on subsequent visits, saved state & cookies persist
   const [state, setState] = useState<AppState>(() => {
     try {
+      const hasVisited =
+        localStorage.getItem(HAS_VISITED_KEY) === 'true' ||
+        getCookie('onefocus_has_visited') === 'true';
+
+      if (!hasVisited) {
+        // First visit: guarantee fresh reset state
+        return INITIAL_STATE;
+      }
+
       const saved =
         localStorage.getItem(STORAGE_KEY) ||
-        localStorage.getItem(LEGACY_STORAGE_KEY_V1) ||
-        localStorage.getItem(LEGACY_STORAGE_KEY_ZENITH);
+        localStorage.getItem('onefocus_state_v2');
+
       if (saved) {
         const parsed = JSON.parse(saved);
-        // If legacy work/life format
-        if (parsed.work && !parsed.priority) {
-          const src = parsed[parsed.activeContext || 'work'] || parsed.work;
-          return {
-            ...INITIAL_STATE,
-            ...parsed,
-            priority: src.priority || INITIAL_STATE.priority,
-            secondaryTasks: src.secondaryTasks || INITIAL_STATE.secondaryTasks,
-            shelf: src.shelf || INITIAL_STATE.shelf,
-            screenMode: src.screenMode || 'setup',
-            reminders: { ...INITIAL_STATE.reminders, ...(parsed.reminders || {}) },
-          };
-        }
+        // Filter out any legacy dummy mock shelf items
+        const cleanShelf = Array.isArray(parsed.shelf)
+          ? parsed.shelf.filter(
+              (item: { title: string }) =>
+                item.title !== 'Reply to Alex re: API migration review' &&
+                item.title !== 'Submit expense receipts for October' &&
+                item.title !== 'Schedule 1:1 sync' &&
+                item.title !== 'Order replacement USB-C cable'
+            )
+          : [];
+
         return {
           ...INITIAL_STATE,
           ...parsed,
+          shelf: cleanShelf,
           reminders: { ...INITIAL_STATE.reminders, ...(parsed.reminders || {}) },
         };
       }
@@ -97,10 +120,12 @@ export default function App() {
     sounds.enabled = state.soundEnabled;
   }, [state.soundEnabled]);
 
-  // Persist state to localStorage
+  // Persist state to localStorage and cookies after every update
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(HAS_VISITED_KEY, 'true');
+      setCookie('onefocus_has_visited', 'true', 365);
     } catch {
       // Ignore
     }
@@ -217,6 +242,44 @@ export default function App() {
       })),
       shelfOpen: false,
     }));
+  }, []);
+
+  // Day Complete -> Reset tasks, persist reset state to storage & cookies, then attempt close
+  const handleDayComplete = useCallback(() => {
+    sounds.playCommit();
+    setState((prev) => {
+      const resetState: AppState = {
+        ...prev,
+        screenMode: 'setup',
+        priority: {
+          id: `priority-${Date.now()}`,
+          title: '',
+          durationMinutes: 60,
+          completed: false,
+          completedTimeMinutes: 60,
+        },
+        secondaryTasks: prev.secondaryTasks.map((t) => ({
+          ...t,
+          title: '',
+          durationMinutes: 0,
+          completed: false,
+        })),
+        shelfOpen: false,
+      };
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(resetState));
+        setCookie('onefocus_has_visited', 'true', 365);
+      } catch {}
+
+      return resetState;
+    });
+
+    window.close();
+    try {
+      window.open('', '_self', '');
+      window.close();
+    } catch {}
   }, []);
 
   // Minimize / Maximize window handlers (macOS genie/scale minimize to desktop dock)
@@ -385,11 +448,13 @@ export default function App() {
         }
       }
 
-      // 's' opens/closes shelf when not actively typing in an input
+      // 's' opens/closes shelf when not actively typing in an input and NOT in locked focus mode
       if (!isInput && (e.key === 's' || e.key === 'S')) {
-        e.preventDefault();
-        sounds.playClick(1.0);
-        toggleShelf();
+        if (state.screenMode !== 'locked') {
+          e.preventDefault();
+          sounds.playClick(1.0);
+          toggleShelf();
+        }
       }
     };
 
@@ -415,8 +480,8 @@ export default function App() {
             : 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
         }`}
       >
-        {/* Fixed Top Anchors: "One Focus" (top-left) & Date/Time (top-right) pushed down to match initial images */}
-        <header className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto pt-14 sm:pt-20 md:pt-24 pb-4 z-20 shrink-0">
+        {/* Fixed Top Anchors: "One Focus" (top-left) & Date/Time (top-right) */}
+        <header className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-[1580px] mx-auto pt-8 sm:pt-10 md:pt-12 pb-0 z-20 shrink-0">
           <span className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
             One Focus
           </span>
@@ -472,6 +537,7 @@ export default function App() {
               onUpdateSecondaryTask={updateSecondaryTask}
               onOpenShelf={openShelf}
               onOpenSettings={() => setSettingsOpen(true)}
+              onDayComplete={handleDayComplete}
             />
           )}
         </main>
