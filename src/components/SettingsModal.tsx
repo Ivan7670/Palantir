@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Info,
   ShieldAlert,
+  Flame,
 } from 'lucide-react';
 import { ReminderSettings } from '../types.ts';
 import { sounds } from '../utils/audio.ts';
@@ -25,6 +26,7 @@ import {
   NotificationPermissionState,
   isRunningInIframe,
   initServiceWorker,
+  isBraveBrowser,
 } from '../utils/notifications.ts';
 
 interface SettingsModalProps {
@@ -48,14 +50,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     sent: boolean;
     method?: string;
     reason?: string;
+    isBrave?: boolean;
   } | null>(null);
   const [inIframe, setInIframe] = useState(false);
+  const [isBrave, setIsBrave] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setPermissionState(getNotificationPermissionState());
       setInIframe(isRunningInIframe());
       initServiceWorker().catch(() => {});
+      isBraveBrowser().then((brave) => {
+        setIsBrave(brave);
+      });
     }
   }, [isOpen]);
 
@@ -96,6 +103,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       sent: res.success,
       method: res.method,
       reason: res.reason,
+      isBrave: res.isBrave,
     });
 
     if (!res.success && permissionState !== 'granted') {
@@ -162,29 +170,110 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Section 1: Desktop Push Notification Engine Status */}
         <div className="p-4 rounded-xl border border-white/[0.08] bg-[#12161f]/70 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#8b91a0]">
-              System Desktop Push
-            </span>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#8b91a0]">
+                System Desktop Push
+              </span>
+              {isBrave && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fb542b]/15 border border-[#fb542b]/40 text-[#ff805d] text-[11px] font-medium">
+                  <Flame className="w-3 h-3 text-[#fb542b]" />
+                  <span>Brave Detected</span>
+                </span>
+              )}
+            </div>
 
-            {permissionState === 'granted' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#122820] border border-[#34d399]/40 text-[#34d399] text-xs font-medium">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Permission Granted</span>
-              </span>
-            )}
-            {permissionState === 'denied' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#2a1717] border border-[#f87171]/40 text-[#f87171] text-xs font-medium">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>Blocked by Browser</span>
-              </span>
-            )}
-            {permissionState === 'default' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1c2432] border border-[#3b82f6]/40 text-[#93c5fd] text-xs font-medium">
-                <span>Needs Permission</span>
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {permissionState === 'granted' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#122820] border border-[#34d399]/40 text-[#34d399] text-xs font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Permission Granted</span>
+                </span>
+              )}
+              {permissionState === 'denied' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#2a1717] border border-[#f87171]/40 text-[#f87171] text-xs font-medium">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Blocked by Browser</span>
+                </span>
+              )}
+              {permissionState === 'default' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1c2432] border border-[#3b82f6]/40 text-[#93c5fd] text-xs font-medium">
+                  <span>Needs Permission</span>
+                </span>
+              )}
+            </div>
           </div>
+
+          {/* Standalone Tab Banner for iframes */}
+          {inIframe && (
+            <div className="p-3 rounded-xl bg-[#1c2438]/80 border border-[#3b82f6]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-start sm:items-center gap-2">
+                <Info className="w-4 h-4 text-[#60a5fa] shrink-0 mt-0.5 sm:mt-0" />
+                <span className="text-[#bfdbfe] leading-tight">
+                  {isBrave
+                    ? 'Brave strictly suppresses notification prompts inside preview frames.'
+                    : 'Browsers block desktop notification prompts inside preview frames.'}{' '}
+                  Open in a full tab for OS push integration.
+                </span>
+              </div>
+              <a
+                href={window.location.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0a84ff] hover:bg-[#0070df] text-white text-xs font-semibold shrink-0 transition-colors shadow-sm"
+              >
+                <span>Open Standalone Tab</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
+
+          {/* Brave-specific configuration alert */}
+          {isBrave && (
+            <div className="p-3.5 rounded-xl bg-[#231512]/90 border border-[#fb542b]/30 text-xs text-[#fde5de] flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-[#fb542b]/20 border border-[#fb542b]/40 flex items-center justify-center text-[#ff805d]">
+                    <Flame className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-semibold text-white">Brave Browser Privacy Guide</span>
+                </div>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-[#fb542b]/20 text-[#ff805d]">
+                  Shields Active
+                </span>
+              </div>
+
+              <p className="text-[11px] text-[#e2b9af] leading-relaxed">
+                Brave blocks Google push messaging and desktop alerts by default for privacy. To receive OS alerts in Brave:
+              </p>
+
+              <div className="space-y-1.5 text-[11px] text-[#fedfd6]">
+                <div className="flex items-start gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
+                  <span className="w-4 h-4 rounded-full bg-[#fb542b]/30 text-[#ff805d] flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</span>
+                  <div>
+                    <strong className="text-white block">Address Bar Permissions:</strong>
+                    Click the tune / lock icon next to the URL &rarr; toggle <span className="text-[#34d399] font-medium">Notifications</span> to <span className="text-[#34d399] font-medium">Allow</span>.
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
+                  <span className="w-4 h-4 rounded-full bg-[#fb542b]/30 text-[#ff805d] flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
+                  <div>
+                    <strong className="text-white block">Brave Push Messaging (for background alerts):</strong>
+                    In Brave, visit <code className="bg-black/60 text-[#93c5fd] px-1 py-0.5 rounded font-mono text-[10px]">brave://settings/privacy</code> and enable <span className="text-white font-medium">&ldquo;Use Google services for push messaging&rdquo;</span>.
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
+                  <span className="w-4 h-4 rounded-full bg-[#34d399]/30 text-[#34d399] flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
+                  <div>
+                    <strong className="text-white block">Tab & Audio Alerts Always Work:</strong>
+                    Even if Brave suppresses system banners, OneFocus flashes the tab title <code className="bg-black/60 text-[#34d399] px-1 py-0.5 rounded font-mono text-[10px]">🔔 Focus Reminder</code> and rings our calm chime.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {permissionState === 'granted' ? (
             <div className="flex flex-col gap-2.5 pt-1">
@@ -224,80 +313,77 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             ? 'Service Worker'
                             : 'Web Notification API'}
                         </strong>
-                        .
+                        . If you don't see an OS banner, check your OS notification settings below.
                       </p>
                     </div>
                   ) : (
                     <div>
                       <div className="flex items-center gap-1.5 font-semibold text-[#f87171] mb-1">
                         <ShieldAlert className="w-4 h-4" />
-                        <span>Dispatch Notice</span>
+                        <span>Notification Notice</span>
                       </div>
-                      <p className="text-[11px]">{testStatus.reason}</p>
+                      <p className="text-[11px] mb-1">{testStatus.reason}</p>
+                      {testStatus.method === 'tab_title' && (
+                        <p className="text-[10px] text-[#93c5fd]">
+                          ✓ Tab title flashing alert & audio chime were triggered successfully as a fallback.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
               )}
 
               {/* macOS / Windows OS System Guidance Alert Box */}
-              <div className="p-3 rounded-lg bg-[#18202d]/60 border border-white/[0.06] text-[11px] text-[#8b91a0] flex flex-col gap-1.5">
-                <div className="flex items-center gap-1.5 text-white font-medium">
-                  <Info className="w-3.5 h-3.5 text-[#60a5fa]" />
-                  <span>Why you might hear sound but not see OS banners:</span>
-                </div>
-                <ul className="list-disc list-inside space-y-1 text-[#9ca3af] pl-1">
-                  <li>
-                    <strong className="text-[#dfe2eb]">macOS:</strong> Open{' '}
-                    <span className="text-white font-mono text-[10px]">System Settings → Notifications → Google Chrome</span>{' '}
-                    and ensure <span className="text-[#34d399]">Allow Notifications</span> is toggled ON with &ldquo;Banners&rdquo; or &ldquo;Alerts&rdquo;.
-                  </li>
-                  <li>
-                    <strong className="text-[#dfe2eb]">Focus / Do Not Disturb:</strong> If macOS or Windows Focus Mode is active, system banners are silenced and hidden in the Notification Center.
-                  </li>
-                  <li>
-                    <strong className="text-[#dfe2eb]">Windows:</strong> Open{' '}
-                    <span className="text-white font-mono text-[10px]">Settings → System → Notifications</span>{' '}
-                    and ensure Chrome is allowed.
-                  </li>
-                  <li>
-                    <strong className="text-[#dfe2eb]">In-App Heads-Up Banner:</strong> OneFocus also automatically displays an on-screen Sequoia banner so you never miss a reminder.
-                  </li>
-                </ul>
-
-                {inIframe && (
-                  <div className="mt-1 pt-1.5 border-t border-white/[0.06] flex items-center justify-between">
-                    <span className="text-[10px] text-[#8b91a0]">
-                      Currently running inside preview frame.
-                    </span>
-                    <a
-                      href={window.location.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-[#60a5fa] hover:text-[#93c5fd] font-medium transition-colors"
-                    >
-                      <span>Open in Full Standalone Tab</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+              {!isBrave && (
+                <div className="p-3 rounded-lg bg-[#18202d]/60 border border-white/[0.06] text-[11px] text-[#8b91a0] flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5 text-white font-medium">
+                    <Info className="w-3.5 h-3.5 text-[#60a5fa]" />
+                    <span>Why you might hear sound but not see OS banners:</span>
                   </div>
-                )}
-              </div>
+                  <ul className="list-disc list-inside space-y-1 text-[#9ca3af] pl-1">
+                    <li>
+                      <strong className="text-[#dfe2eb]">macOS:</strong> Open{' '}
+                      <span className="text-white font-mono text-[10px]">System Settings → Notifications → Browser</span>{' '}
+                      and ensure <span className="text-[#34d399]">Allow Notifications</span> is toggled ON with &ldquo;Banners&rdquo; or &ldquo;Alerts&rdquo;.
+                    </li>
+                    <li>
+                      <strong className="text-[#dfe2eb]">Focus / Do Not Disturb:</strong> If macOS or Windows Focus Mode is active, system banners are silenced and hidden in the Notification Center.
+                    </li>
+                    <li>
+                      <strong className="text-[#dfe2eb]">Windows:</strong> Open{' '}
+                      <span className="text-white font-mono text-[10px]">Settings → System → Notifications</span>{' '}
+                      and ensure your browser is allowed.
+                    </li>
+                    <li>
+                      <strong className="text-[#dfe2eb]">In-App Heads-Up Banner:</strong> OneFocus also automatically displays an on-screen Sequoia banner so you never miss a reminder.
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
           ) : permissionState === 'denied' ? (
             <div className="text-xs text-[#f87171] leading-relaxed flex flex-col gap-2">
               <p>
-                Notifications were blocked in your browser. To enable them, click the lock or site settings icon in your browser address bar and change <strong>Notifications</strong> to <strong>Allow</strong>.
+                {isBrave ? (
+                  <>
+                    Brave Shields currently block notifications. To enable, click the lock/tune icon on the left side of the address bar and set <strong>Notifications</strong> to <strong>Allow</strong>.
+                  </>
+                ) : (
+                  <>
+                    Notifications were blocked in your browser. To enable them, click the lock or site settings icon in your browser address bar and change <strong>Notifications</strong> to <strong>Allow</strong>.
+                  </>
+                )}
               </p>
-              {inIframe && (
-                <a
-                  href={window.location.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-[#60a5fa] hover:underline"
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleSendTestNotification}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-medium text-white transition-all cursor-pointer active:scale-95"
                 >
-                  <span>Open standalone app in new tab to prompt for permissions</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+                  <Send className="w-3 h-3" />
+                  <span>Test Tab Alert & Sound</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">

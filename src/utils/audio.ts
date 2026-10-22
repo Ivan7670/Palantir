@@ -12,9 +12,20 @@ class SoundEngine {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
     return this.ctx;
+  }
+
+  public unlock() {
+    try {
+      const ctx = this.getContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+    } catch {
+      // Ignore
+    }
   }
 
   // Soft tactile click for key presses / selections

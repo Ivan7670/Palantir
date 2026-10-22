@@ -26,6 +26,8 @@ import { NotificationToast, ActiveNotification } from './components/Notification
 import {
   sendPriorityReminderNotification,
   initServiceWorker,
+  stopTabTitleAlert,
+  startTabTitleAlert,
 } from './utils/notifications.ts';
 
 const STORAGE_KEY = 'onefocus_state_v1';
@@ -257,6 +259,7 @@ export default function App() {
 
   const handleMaximizeWindow = useCallback(() => {
     sounds.playRestore();
+    stopTabTitleAlert();
     setIsMinimized(false);
   }, []);
 
@@ -274,6 +277,7 @@ export default function App() {
   // Trigger reminder notification with dual delivery:
   // 1. In-app macOS Sequoia floating banner (guaranteed visual delivery even if OS Do Not Disturb is ON)
   // 2. Native desktop push via Service Worker / Web Notification API
+  // 3. Tab title flashing alert & audio chime (bulletproof fallback for Brave Shields)
   const triggerReminderNotification = useCallback(
     (priority: PriorityTask, contextName: string) => {
       const hasTitle = priority.title && priority.title.trim().length > 0;
@@ -297,14 +301,20 @@ export default function App() {
         type: priority.completed ? 'completed' : 'reminder',
       });
 
-      // 2. Dispatch native OS desktop push
+      // 2. Trigger tab title alert if minimized or tab is in background
+      if (isMinimized || (typeof document !== 'undefined' && (document.hidden || !document.hasFocus()))) {
+        startTabTitleAlert(hasTitle ? priority.title : 'Check in on priority');
+      }
+
+      // 3. Dispatch native OS desktop push
       sendPriorityReminderNotification(priority, contextName, () => {
         setIsMinimized(false);
+        stopTabTitleAlert();
       }).catch((err) => {
         console.warn('[OneFocus] Desktop push dispatch warning:', err);
       });
     },
-    []
+    [isMinimized]
   );
 
   // Background check for scheduled reminder times & recurring intervals (User Request 2 & 3)
@@ -346,6 +356,9 @@ export default function App() {
 
   // Synchronize dynamic document title when minimized vs full window
   useEffect(() => {
+    if (typeof document !== 'undefined' && document.title.startsWith('🔔')) {
+      return; // Do not overwrite active reminder tab alert
+    }
     if (isMinimized) {
       const taskTitle = currentContextData.priority.title.trim();
       document.title = taskTitle
